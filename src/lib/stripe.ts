@@ -64,12 +64,27 @@ export const createCheckoutSession = async (
   cancelUrl: string
 ) => {
   try {
-    // Mode développement : simuler la création de session
-    console.log('Mode développement : Simulation de la création de session Stripe')
-    console.log('Price ID:', priceId)
-    console.log('User ID:', userId)
-    console.log('User Email:', userEmail)
-    return 'cs_test_simulation'
+    // Mode production : créer une vraie session Stripe
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        priceId,
+        userId,
+        userEmail,
+        successUrl,
+        cancelUrl,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to create checkout session')
+    }
+
+    const { sessionId } = await response.json()
+    return sessionId
   } catch (error) {
     console.error('Erreur createCheckoutSession:', error)
     throw error
@@ -85,23 +100,11 @@ export const redirectToCheckout = async (
   try {
     const stripe = await getStripe()
     if (!stripe) {
-      // Mode développement : simuler l'upgrade
-      console.log('Mode développement : Simulation de l\'upgrade Premium')
-      alert('Mode développement : Upgrade Premium simulé !\n\nEn production, vous seriez redirigé vers Stripe.')
-      return
+      console.error('Stripe not initialized')
+      throw new Error('Stripe not available')
     }
 
-    // Mode développement : simuler l'upgrade sans Stripe
-    console.log('Mode développement : Simulation de l\'upgrade Premium')
-    console.log('Price ID:', priceId)
-    console.log('User ID:', userId)
-    console.log('User Email:', userEmail)
-    
-    alert('Mode développement : Upgrade Premium simulé !\n\nEn production, vous seriez redirigé vers Stripe Checkout.')
-    return
-
-    // Code pour la production (commenté pour le développement)
-    /*
+    // Mode production : redirection vers Stripe Checkout
     const successUrl = `${window.location.origin}/dashboard?payment=success`
     const cancelUrl = `${window.location.origin}/dashboard?payment=cancelled`
 
@@ -118,7 +121,6 @@ export const redirectToCheckout = async (
     if (error) {
       throw error
     }
-    */
   } catch (error) {
     console.error('Erreur redirectToCheckout:', error)
     throw error
