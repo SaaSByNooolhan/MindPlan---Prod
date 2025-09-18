@@ -8,6 +8,9 @@
     },
     "api/create-checkout-session.js": {
       "maxDuration": 30
+    },
+    "api/create-portal-session.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
