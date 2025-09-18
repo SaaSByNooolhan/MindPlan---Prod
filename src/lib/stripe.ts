@@ -130,23 +130,13 @@ export const redirectToCheckout = async (
 // Fonction pour créer un portail client Stripe
 export const createCustomerPortalSession = async (userId: string) => {
   try {
-    // Mode production : créer une vraie session de portail client
-    const response = await fetch('/api/create-portal-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to create portal session')
-    }
-
-    const { url } = await response.json()
-    return url
+    // Redirection directe vers le portail client Stripe
+    const portalUrl = 'https://billing.stripe.com/p/login/3cI5kF3PQ6mn6VT0cH7N600'
+    
+    // Rediriger directement vers le portail
+    window.location.href = portalUrl
+    
+    return portalUrl
   } catch (error) {
     console.error('Erreur createCustomerPortalSession:', error)
     throw error
