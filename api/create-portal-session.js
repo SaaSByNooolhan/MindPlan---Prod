@@ -1,11 +1,13 @@
 // Route API pour créer une session du portail client Stripe
-// À déployer sur Vercel, Netlify Functions, ou votre serveur backend
+// Version ES Modules pour Vercel
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
-const { createClient } = require('@supabase/supabase-js')
+import Stripe from 'stripe'
+import { createClient } from '@supabase/supabase-js'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
+  process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
     // Créer la session du portail
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${process.env.VITE_APP_URL}/dashboard`,
+      return_url: `${req.headers.origin}/dashboard`,
     })
 
     res.status(200).json({ url: portalSession.url })
