@@ -50,9 +50,9 @@ export default async function handler(req, res) {
 
     if (!profile?.stripe_customer_id) {
       console.error('No stripe_customer_id found for user:', userId)
-      return res.status(404).json({ 
-        error: 'Customer not found', 
-        message: 'You need to have an active subscription to access the customer portal' 
+      return res.status(400).json({ 
+        error: 'No Stripe customer found', 
+        message: 'Vous devez d\'abord créer un abonnement pour accéder au portail client. Veuillez vous abonner d\'abord.' 
       })
     }
 
