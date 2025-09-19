@@ -64,7 +64,11 @@ export const Settings: React.FC = () => {
     try {
       const result = await manageSubscription()
       if (result?.error) {
-        alert(`Erreur: ${result.error}`)
+        if (result.error.includes('No Stripe customer found')) {
+          alert('Vous devez d\'abord créer un abonnement pour accéder au portail client. Veuillez vous abonner d\'abord.')
+        } else {
+          alert(`Erreur: ${result.error}`)
+        }
       }
     } catch (error) {
       console.error('Error managing subscription:', error)
