@@ -10,11 +10,27 @@ import { FinanceTracker } from './components/finance/FinanceTracker'
 import { Analytics } from './components/finance/Analytics'
 import { Budgets } from './components/finance/Budgets'
 import { Reports } from './components/finance/Reports'
+import { Accounts } from './components/finance/Accounts'
+import { FinancialGoals } from './components/finance/FinancialGoals'
+import { ExportData } from './components/finance/ExportData'
 import { Settings } from './components/settings/Settings'
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuthContext()
-  const [activeSection, setActiveSection] = useState('dashboard')
+  
+  // Initialiser avec la dernière section visitée ou dashboard par défaut
+  const getInitialSection = () => {
+    if (typeof window !== 'undefined') {
+      const lastSection = localStorage.getItem('lastActiveSection')
+      const validSections = ['dashboard', 'finance', 'analytics', 'budgets', 'reports', 'accounts', 'goals', 'export', 'settings']
+      if (lastSection && validSections.includes(lastSection)) {
+        return lastSection
+      }
+    }
+    return 'dashboard'
+  }
+  
+  const [activeSection, setActiveSection] = useState(getInitialSection)
   const [showAuth, setShowAuth] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -27,7 +43,7 @@ const AppContent: React.FC = () => {
     }
   }, [activeSection, user])
 
-  // Restaurer la dernière section visitée ou rediriger selon les cas spéciaux
+  // Gérer les redirections spéciales pour l'essai Premium
   React.useEffect(() => {
     if (user) {
       // Vérifier si c'est une redirection spéciale pour l'essai Premium (seulement pour les nouvelles inscriptions)
@@ -40,20 +56,12 @@ const AppContent: React.FC = () => {
         localStorage.removeItem('wantsPremium') // Nettoyer le flag
         localStorage.removeItem('isNewSignup') // Nettoyer le flag
       } else {
-        // Pour les connexions d'utilisateurs existants, restaurer la dernière page visitée
-        const lastActiveSection = localStorage.getItem('lastActiveSection')
-        if (lastActiveSection && ['dashboard', 'finance', 'analytics', 'budgets', 'reports', 'settings'].includes(lastActiveSection)) {
-          setActiveSection(lastActiveSection)
-        } else {
-          // Si aucune section valide n'est trouvée, aller au dashboard par défaut
-          setActiveSection('dashboard')
-        }
         // Nettoyer les flags au cas où
         localStorage.removeItem('wantsPremium')
         localStorage.removeItem('isNewSignup')
       }
     }
-  }, [user]) // Seulement quand l'utilisateur change, pas quand activeSection change
+  }, [user]) // Seulement quand l'utilisateur change
 
   if (loading) {
     return (
@@ -83,22 +91,42 @@ const AppContent: React.FC = () => {
   }
 
   const renderContent = () => {
-    switch (activeSection) {
-      case 'dashboard':
-        return <Dashboard onNavigate={handleNavigate} />
-      case 'finance':
-        return <FinanceTracker initialParams={sectionParams} />
-      case 'analytics':
-        return <Analytics />
-      case 'budgets':
-        return <Budgets />
-      case 'reports':
-        return <Reports />
-      case 'settings':
-        return <Settings />
-      default:
-        return <Dashboard onNavigate={handleNavigate} />
-    }
+    const content = (() => {
+      switch (activeSection) {
+        case 'dashboard':
+          return <Dashboard onNavigate={handleNavigate} />
+        case 'finance':
+          return <FinanceTracker initialParams={sectionParams} />
+        case 'analytics':
+          return <Analytics />
+        case 'budgets':
+          return <Budgets />
+        case 'accounts':
+          return <Accounts />
+        case 'goals':
+          return <FinancialGoals />
+        case 'export':
+          return <ExportData />
+        case 'reports':
+          return <Reports />
+        case 'settings':
+          return <Settings />
+        default:
+          return <Dashboard onNavigate={handleNavigate} />
+      }
+    })()
+
+    return (
+      <div 
+        key={activeSection} 
+        className="flex-1 transition-all duration-300 ease-in-out"
+        style={{
+          animation: 'fadeIn 0.3s ease-in-out'
+        }}
+      >
+        {content}
+      </div>
+    )
   }
 
   return (

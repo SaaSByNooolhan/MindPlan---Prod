@@ -120,22 +120,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     }).format(amount)
   }
 
-  if (loading) {
-    return (
-      <div className="p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Pas d'écran de chargement bloquant - affichage immédiat avec skeleton
 
   return (
     <div className="p-4 sm:p-6">
@@ -158,7 +143,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
             
             {/* Statut Premium */}
-            {isPremium() && (
+            {!loading && isPremium() && (
               <div className="flex items-center space-x-2">
                 {subscription?.status === 'trial' && getTrialDaysLeft() > 0 ? (
                   <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2">
@@ -190,9 +175,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenus</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(stats.totalIncome)}
-                </p>
+                {loading ? (
+                  <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(stats.totalIncome)}
+                  </p>
+                )}
               </div>
               <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -204,9 +193,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Dépenses</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(stats.totalExpenses)}
-                </p>
+                {loading ? (
+                  <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {formatCurrency(stats.totalExpenses)}
+                  </p>
+                )}
               </div>
               <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
                 <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -218,9 +211,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Solde Net</p>
-                <p className={`text-2xl font-bold ${stats.netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {formatCurrency(stats.netBalance)}
-                </p>
+                {loading ? (
+                  <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                ) : (
+                  <p className={`text-2xl font-bold ${stats.netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {formatCurrency(stats.netBalance)}
+                  </p>
+                )}
               </div>
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
                 <Wallet className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -232,12 +229,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Budget Utilisé</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {Math.round((stats.budgetUsed / stats.monthlyBudget) * 100)}%
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatCurrency(stats.budgetUsed)} / {formatCurrency(stats.monthlyBudget)}
-                </p>
+                {loading ? (
+                  <>
+                    <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-1"></div>
+                    <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {Math.round((stats.budgetUsed / stats.monthlyBudget) * 100)}%
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {formatCurrency(stats.budgetUsed)} / {formatCurrency(stats.monthlyBudget)}
+                    </p>
+                  </>
+                )}
               </div>
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
                 <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />

@@ -9,7 +9,10 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
+  Target,
+  Download
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -25,9 +28,12 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'finance', label: 'Transactions', icon: DollarSign },
+    { id: 'accounts', label: 'Comptes', icon: CreditCard },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'budgets', label: 'Budgets', icon: PieChart },
+    { id: 'goals', label: 'Objectifs', icon: Target },
     { id: 'reports', label: 'Rapports', icon: BarChart3 },
+    { id: 'export', label: 'Export', icon: Download },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 

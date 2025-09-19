@@ -310,6 +310,21 @@ export const AdvancedStats: React.FC<AdvancedStatsProps> = ({ transactions }) =>
     return `${chartNames[selectedChart]} - ${getPeriodName()}`
   }
 
+  // Pendant le chargement, afficher un skeleton pour éviter le flash
+  if (loading) {
+    return (
+      <Card>
+        <div className="p-6">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+            <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
   // Protection Premium pour les analytics avancées
   if (!isPremium()) {
     return (

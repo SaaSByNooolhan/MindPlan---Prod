@@ -266,22 +266,7 @@ export const Budgets: React.FC = () => {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">
-            Gestion des Budgets
-          </h1>
-          <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Pas d'écran de chargement bloquant - affichage immédiat
 
   const insights = getBudgetInsights()
 
@@ -611,13 +596,6 @@ export const Budgets: React.FC = () => {
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Créez votre premier budget pour commencer à suivre vos dépenses
               </p>
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>Note :</strong> Pour utiliser cette fonctionnalité, vous devez d'abord appliquer la migration de la base de données.
-                  <br />
-                  Exécutez la migration <code>20250120000011_create_budgets_table.sql</code> dans votre base de données Supabase.
-                </p>
-              </div>
               <Button onClick={() => setShowAddForm(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Créer un Budget

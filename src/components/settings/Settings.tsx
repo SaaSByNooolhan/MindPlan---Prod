@@ -17,7 +17,7 @@ import { useAuth } from '../../hooks/useAuth'
 
 export const Settings: React.FC = () => {
   const { user } = useAuthContext()
-  const { subscription, isPremium, upgradeToPremium, manageSubscription } = useSubscription()
+  const { subscription, isPremium, upgradeToPremium, manageSubscription, loading } = useSubscription()
   const { toggleTheme } = useTheme()
   const { signOut } = useAuth()
   const [isUpgrading, setIsUpgrading] = useState(false)
@@ -97,13 +97,15 @@ export const Settings: React.FC = () => {
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Plan</p>
                       <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        {isPremium() ? 'Premium' : 'Gratuit'}
+                        {loading ? 'Chargement...' : (isPremium() ? 'Premium' : 'Gratuit')}
                       </p>
                     </div>
                     <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      isPremium() 
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      loading 
+                        ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        : (isPremium() 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300')
                     }`}>
                       {subscription?.status === 'trial' ? 'Essai' : subscription?.status || 'Actif'}
                     </div>
@@ -124,30 +126,8 @@ export const Settings: React.FC = () => {
                     Actions
                   </h3>
                   
-                  {!isPremium() && subscription?.status !== 'trial' && (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <Crown className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          <h4 className="font-semibold text-blue-800 dark:text-blue-200">
-                            Essai Premium gratuit
-                          </h4>
-                        </div>
-                        <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">
-                          Testez toutes les fonctionnalités Premium pendant 7 jours
-                        </p>
-                        <Button
-                          onClick={handleUpgrade}
-                          disabled={isUpgrading}
-                          className="w-full"
-                        >
-                          {isUpgrading ? 'Chargement...' : 'Essai Premium 7 jours'}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
 
-                  {isPremium() && (
+                  {!loading && isPremium() && (
                     <div className="space-y-4">
                       <Button
                         onClick={handleManageSubscription}

@@ -504,7 +504,7 @@ export const Analytics: React.FC = () => {
               </div>
 
               {/* Graphiques avancés (d'AdvancedStats) */}
-              {isPremium() ? (
+              {!loading && isPremium() ? (
                 <Card className="p-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <div>

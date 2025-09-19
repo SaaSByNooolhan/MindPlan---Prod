@@ -1,7 +1,7 @@
 import React from 'react'
 import { Card } from './Card'
 import { Button } from './Button'
-import { Crown, Lock, Star } from 'lucide-react'
+import { Crown, Lock } from 'lucide-react'
 import { useSubscription } from '../../hooks/useSubscription'
 
 interface PremiumGuardProps {
@@ -17,34 +17,22 @@ export const PremiumGuard: React.FC<PremiumGuardProps> = ({
   description,
   showUpgradeButton = true 
 }) => {
-  const { isPremium, getTrialDaysLeft, subscription, upgradeToPremium } = useSubscription()
+  const { isPremium, upgradeToPremium, loading } = useSubscription()
   const isPremiumUser = isPremium()
-  const trialDaysLeft = getTrialDaysLeft()
-  const isTrial = subscription?.status === 'trial'
+
+  // Pendant le chargement, afficher le contenu pour éviter le flash
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {children}
+      </div>
+    )
+  }
 
   // Si l'utilisateur est Premium (actif ou en essai), afficher le contenu
   if (isPremiumUser) {
     return (
       <div className="space-y-4">
-        {/* Indicateur d'essai si applicable */}
-        {isTrial && trialDaysLeft > 0 && (
-          <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full flex items-center justify-center">
-                <Star className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200">
-                  Essai Premium gratuit
-                </h3>
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  {trialDaysLeft} jour{trialDaysLeft > 1 ? 's' : ''} restant{trialDaysLeft > 1 ? 's' : ''}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        
         {children}
       </div>
     )
