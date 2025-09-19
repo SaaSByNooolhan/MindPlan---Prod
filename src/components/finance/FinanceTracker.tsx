@@ -8,9 +8,6 @@ import { useAuthContext } from '../../contexts/AuthContext'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useSubscription } from '../../hooks/useSubscription'
-import { BasicStats } from './BasicStats'
-import { AdvancedStats } from './AdvancedStats'
-import { PremiumUpgrade } from './PremiumUpgrade'
 
 interface FinanceTrackerProps {
   initialParams?: any
@@ -21,7 +18,6 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
   const { isPremium } = useSubscription()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
-  const [showStats, setShowStats] = useState(false)
   const [showSubscriptions, setShowSubscriptions] = useState(false)
   const [currentBalance, setCurrentBalance] = useState(0)
   
@@ -211,21 +207,17 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         <div>
           <div className="flex items-center space-x-2 mb-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Finances</h1>
-            {isPremium() && (
-              <span className="px-2 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-medium">
-                PREMIUM
-              </span>
-            )}
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Suivez vos dépenses et revenus
-          </p>
+          <div className="flex items-center space-x-2">
+            <p className="text-gray-600 dark:text-gray-400">
+              Suivez vos dépenses et revenus
+            </p>
+            <span className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full font-medium">
+              Toutes les transactions
+            </span>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Button onClick={() => setShowStats(!showStats)} className="w-full sm:w-auto">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            {showStats ? 'Masquer' : 'Statistiques'}
-          </Button>
           <Button onClick={() => setShowSubscriptions(!showSubscriptions)} className="w-full sm:w-auto">
             <CreditCard className="w-4 h-4 mr-2" />
             {showSubscriptions ? 'Masquer' : 'Abonnements'}
@@ -274,19 +266,6 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         </div>
       </Card>
 
-      {/* Statistics Section */}
-      {showStats && (
-        <div className="space-y-6">
-          {isPremium() ? (
-            <AdvancedStats transactions={transactions} />
-          ) : (
-            <div className="space-y-6">
-              <BasicStats transactions={transactions} monthlyBudget={monthlyBudget} />
-              <PremiumUpgrade />
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Recurring Transactions Section */}
       {showSubscriptions && (

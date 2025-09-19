@@ -72,9 +72,21 @@ export interface Subscription {
   id: string
   user_id: string
   plan_type: 'free' | 'premium'
-  status: 'active' | 'cancelled' | 'expired'
+  status: 'active' | 'cancelled' | 'expired' | 'trial' | 'trial_ending'
   start_date: string
   end_date?: string
+  trial_end?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Budget {
+  id: string
+  user_id: string
+  category: string
+  amount: number
+  spent: number
+  period: 'monthly' | 'weekly' | 'yearly'
   created_at: string
   updated_at: string
 }

@@ -5,13 +5,15 @@ import { Input } from '../ui/Input'
 import { Card } from '../ui/Card'
 import { useAuthSimple } from '../../hooks/useAuthSimple'
 import { useSubscription } from '../../hooks/useSubscription'
+import { redirectToCheckout } from '../../lib/stripe'
 
 interface AuthFormSimpleProps {
   onBackToLanding?: () => void
+  initialMode?: 'login' | 'signup'
 }
 
-export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding }) => {
-  const [isLogin, setIsLogin] = useState(true)
+export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding, initialMode = 'login' }) => {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [wantsPremium, setWantsPremium] = useState(false)
@@ -22,31 +24,41 @@ export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding 
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // Vérifier si l'utilisateur doit être forcé vers l'inscription
+  // Vérifier les flags Premium seulement
   useEffect(() => {
-    const forceSignupFlag = localStorage.getItem('forceSignup')
     const wantsPremiumFlag = localStorage.getItem('wantsPremium')
-    const fromDemoFlag = localStorage.getItem('fromDemo')
-    
-    if (forceSignupFlag === 'true') {
-      setIsLogin(false) // Forcer l'inscription
-      localStorage.removeItem('forceSignup') // Nettoyer le flag
-    }
-    
-    if (fromDemoFlag === 'true') {
-      setIsLogin(false) // Forcer l'inscription depuis la démo
-      localStorage.removeItem('fromDemo') // Nettoyer le flag
-    }
     
     if (wantsPremiumFlag === 'true') {
       setWantsPremium(true)
-      setIsLogin(false) // Forcer l'inscription
       // Ne pas supprimer wantsPremium ici, on le garde pour l'inscription
     }
   }, [])
 
-  const { signIn, signUp } = useAuthSimple()
+  const { signIn, signUp, signInWithGoogle } = useAuthSimple()
   const { startFreeTrial } = useSubscription()
+
+  const handleGoogleAuth = async () => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      // Si l'utilisateur veut Premium, on le marque avant la connexion Google
+      if (wantsPremium) {
+        localStorage.setItem('wantsPremium', 'true')
+        localStorage.setItem('isNewSignup', 'true')
+      }
+
+      const { error } = await signInWithGoogle()
+      if (error) {
+        setError(error.message)
+      }
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue avec Google')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,10 +88,24 @@ export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding 
         } else {
           setSuccess('Inscription réussie ! Vérifiez votre email.')
           
-          // L'utilisateur peut maintenant démarrer son essai Premium depuis les Paramètres
+          // Si l'utilisateur veut Premium, rediriger vers Stripe Checkout
           if (wantsPremium) {
-            console.log('Utilisateur inscrit avec intention Premium - sera redirigé vers les Paramètres')
-            // Garder le flag wantsPremium pour la redirection
+            console.log('Utilisateur inscrit avec intention Premium - redirection vers Stripe Checkout')
+            try {
+              // Attendre un peu que l'utilisateur soit créé
+              setTimeout(async () => {
+                try {
+                  await redirectToCheckout('price_1S5EWfQYDIbMKdHDvz4q1JhS', data.user?.id || '', formData.email)
+                } catch (error) {
+                  console.error('Erreur lors de la redirection vers Stripe:', error)
+                  alert('Inscription réussie ! Vous pouvez maintenant vous abonner depuis les Paramètres.')
+                }
+              }, 2000)
+            } catch (error) {
+              console.error('Erreur lors de la redirection vers Stripe:', error)
+            }
+            // Nettoyer le flag
+            localStorage.removeItem('wantsPremium')
           } else {
             // Si pas d'intention Premium, nettoyer le flag
             localStorage.removeItem('wantsPremium')
@@ -94,7 +120,7 @@ export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-emerald-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         {/* Back button */}
         {onBackToLanding && (
@@ -114,18 +140,6 @@ export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding 
           <p className="text-gray-600 dark:text-gray-400">
             {isLogin ? 'Connectez-vous à votre compte' : 'Créez votre compte'}
           </p>
-          {wantsPremium && (
-            <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-              <div className="flex items-center justify-center space-x-2">
-                <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                  🎉 Inscription Premium
-                </span>
-              </div>
-              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                Vous pourrez démarrer votre essai Premium gratuit de 7 jours depuis le Dashboard !
-              </p>
-            </div>
-          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -182,10 +196,52 @@ export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding 
           </Button>
         </form>
 
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+              ou continuer avec
+            </span>
+          </div>
+        </div>
+
+        {/* Google Sign In Button */}
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          size="lg"
+          onClick={handleGoogleAuth}
+          disabled={loading}
+        >
+          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="currentColor"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="currentColor"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+            />
+            <path
+              fill="currentColor"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            />
+          </svg>
+          {isLogin ? 'Se connecter avec Google' : "S'inscrire avec Google"}
+        </Button>
+
         <div className="mt-6 text-center">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
           >
             {isLogin ? "Pas encore de compte ? S'inscrire" : "Déjà un compte ? Se connecter"}
           </button>

@@ -5,10 +5,10 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, subWeeks } from 'dat
 import { fr } from 'date-fns/locale'
 
 interface FinanceChartProps {
-  transactions: Transaction[]
+  transactions?: Transaction[]
 }
 
-export const FinanceChart: React.FC<FinanceChartProps> = ({ transactions }) => {
+export const FinanceChart: React.FC<FinanceChartProps> = ({ transactions = [] }) => {
   // Get the last 7 days
   const endDate = new Date()
   const startDate = subWeeks(endDate, 1)

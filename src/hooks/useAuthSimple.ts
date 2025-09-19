@@ -53,6 +53,20 @@ export const useAuthSimple = () => {
     }
   }
 
+  const signInWithGoogle = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      })
+      return { data, error }
+    } catch (err) {
+      return { data: null, error: err }
+    }
+  }
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut()
@@ -67,6 +81,7 @@ export const useAuthSimple = () => {
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
   }
 }

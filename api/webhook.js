@@ -1,5 +1,5 @@
 // Webhook Stripe pour gérer les événements d'abonnement
-// Version corrigée pour Vercel (ES Modules)
+// Version ES Modules pour Vercel
 
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
@@ -91,6 +91,12 @@ async function handleCheckoutSessionCompleted(session) {
     // Déterminer le type de plan
     const planType = 'premium' // Votre plan unique
 
+    // Déterminer le statut basé sur l'essai
+    let status = subscription.status
+    if (subscription.status === 'trialing') {
+      status = 'trial'
+    }
+
     // Créer ou mettre à jour l'abonnement dans Supabase
     const { error } = await supabase
       .from('subscriptions')
@@ -98,9 +104,10 @@ async function handleCheckoutSessionCompleted(session) {
         user_id: userId,
         stripe_subscription_id: subscriptionId,
         plan_type: planType,
-        status: subscription.status,
+        status: status,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
       })
 
     if (error) {
@@ -250,3 +257,5 @@ async function handlePaymentFailed(invoice) {
     throw error
   }
 }
+
+

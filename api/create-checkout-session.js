@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Error creating customer' })
     }
 
-    // Créer la session de checkout
+    // Créer la session de checkout avec essai gratuit de 7 jours
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ['card'],
@@ -70,6 +70,7 @@ export default async function handler(req, res) {
         userId: userId,
       },
       subscription_data: {
+        trial_period_days: 7, // Toujours 7 jours d'essai
         metadata: {
           userId: userId,
         },

@@ -1,217 +1,151 @@
 import React from 'react'
 import { Card } from '../ui/Card'
 import { 
-  LayoutDashboard, 
-  CheckSquare, 
-  Calendar, 
   DollarSign, 
-  Timer,
-  TrendingUp,
-  Clock,
-  Wallet,
-  AlertTriangle,
-  Crown
+  TrendingUp, 
+  TrendingDown, 
+  Wallet, 
+  Target,
+  PieChart,
+  BarChart3
 } from 'lucide-react'
 
 export const LiveDashboard: React.FC = () => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 p-4 sm:p-6">
+      <div className="bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-gray-700 dark:to-gray-800 p-4 sm:p-6">
         <div className="text-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Aperçu en temps réel du Dashboard
+            Aperçu en temps réel du Dashboard Financier
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Voici exactement ce que vous verrez dans votre compte
+            Voici exactement ce que vous verrez dans votre compte MindPlan
           </p>
         </div>
         
         {/* Live Dashboard Container */}
         <div className="bg-white dark:bg-black rounded-xl shadow-lg overflow-hidden" style={{ height: '600px' }}>
-          <div className="h-full overflow-y-auto p-4">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  Bonjour !
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Voici un résumé de votre semaine
-                </p>
+          {/* Mock Dashboard Header */}
+          <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">MindPlan</h2>
               </div>
-              <div className="text-right">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  14:32
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Lundi 20 janvier 2025
-                </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">En direct</span>
               </div>
-            </div>
-
-            {/* Current Balance Card */}
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                    <Wallet className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      Solde Actuel
-                    </h3>
-                    <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
-                      1,247.50€
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    12 transactions
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500">
-                    Basé sur toutes vos transactions
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
-              <Card className="hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tâches</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      8/12
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      67% complétées
-                    </p>
-                  </div>
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-                    <CheckSquare className="w-6 h-6 text-black dark:text-white" />
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Budget semaine</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      156€
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      62% utilisé
-                    </p>
-                  </div>
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-                    <DollarSign className="w-6 h-6 text-black dark:text-white" />
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pomodoros</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      6
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Aujourd'hui
-                    </p>
-                  </div>
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-                    <Clock className="w-6 h-6 text-black dark:text-white" />
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Événements</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      4
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Cette semaine
-                    </p>
-                  </div>
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-                    <Calendar className="w-6 h-6 text-black dark:text-white" />
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            {/* Premium Upgrade Banner */}
-            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                    <Crown className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      Débloquez les statistiques avancées
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Passez à Premium pour des analyses financières détaillées
-                    </p>
-                  </div>
-                </div>
-                <button className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium transition-colors">
-                  Voir les statistiques
-                </button>
-              </div>
-            </Card>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <Card className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Actions rapides</h3>
-                <div className="space-y-3">
-                  <button className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">Ajouter une tâche</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Créer une nouvelle tâche</div>
-                  </button>
-                  <button className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">Voir mes finances</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Accéder au suivi financier</div>
-                  </button>
-                  <button className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">Nouvelle dépense</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Enregistrer une dépense</div>
-                  </button>
-                  <button className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">Session Pomodoro</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Démarrer un cycle de travail</div>
-                  </button>
-                </div>
-              </Card>
-
-              <Card className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Prochains événements</h3>
-                <div className="space-y-3">
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-                    <p className="text-gray-600 dark:text-gray-400">Aucun événement planifié</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-500">Ajoutez un événement à votre agenda</p>
-                  </div>
-                </div>
-              </Card>
             </div>
           </div>
-        </div>
-        
-        {/* Demo Notice */}
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <p className="text-sm text-blue-800 dark:text-blue-200 text-center">
-            💡 <strong>Dashboard réel</strong> - Voici exactement l'interface que vous utiliserez
-          </p>
+
+          {/* Mock Dashboard Content */}
+          <div className="p-4 space-y-4" style={{ height: 'calc(100% - 80px)', overflowY: 'auto' }}>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Revenus</p>
+                    <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">2,450€</p>
+                  </div>
+                  <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+              
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">Dépenses</p>
+                    <p className="text-lg font-bold text-red-700 dark:text-red-300">1,890€</p>
+                  </div>
+                  <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Balance Card */}
+            <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Solde Net</p>
+                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">+560€</p>
+                </div>
+                <Wallet className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+
+            {/* Budget Progress */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Budget Mensuel</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">63% utilisé</p>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="bg-gradient-to-r from-blue-600 to-emerald-600 h-2 rounded-full" style={{ width: '63%' }}></div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">1,890€ / 3,000€</p>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Transactions Récentes</h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                      <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Courses</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Aujourd'hui</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold text-red-600 dark:text-red-400">-45€</p>
+                </div>
+                
+                <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
+                      <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Salaire</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Hier</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">+2,450€</p>
+                </div>
+                
+                <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                      <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Loyer</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Il y a 2 jours</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold text-red-600 dark:text-red-400">-800€</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <button className="p-3 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                <DollarSign className="w-4 h-4 mx-auto mb-1" />
+                Ajouter
+              </button>
+              <button className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                <BarChart3 className="w-4 h-4 mx-auto mb-1" />
+                Analytics
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

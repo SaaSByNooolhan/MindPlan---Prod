@@ -199,7 +199,7 @@ export const useSubscription = () => {
       return { error: null }
     } catch (error) {
       console.error('Error in upgradeToPremium:', error)
-      return { error }
+      return { error: error.message || 'Erreur lors de l\'upgrade' }
     }
   }
 

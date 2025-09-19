@@ -1,7 +1,7 @@
 import { loadStripe, Stripe } from '@stripe/stripe-js'
 
 // Configuration Stripe
-const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY
 
 // Mode développement : utiliser une clé de test par défaut si non définie
 if (!stripePublishableKey) {
@@ -80,7 +80,8 @@ export const createCheckoutSession = async (
     })
 
     if (!response.ok) {
-      throw new Error('Failed to create checkout session')
+      const errorData = await response.json()
+      throw new Error(errorData.message || 'Failed to create checkout session')
     }
 
     const { sessionId } = await response.json()

@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
-  CheckSquare, 
-  Calendar, 
   DollarSign, 
-  Timer, 
+  TrendingUp,
+  PieChart,
+  BarChart3,
   Settings,
   Menu,
   X,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { PomodoroIndicator } from '../pomodoro/PomodoroIndicator';
 
 interface SidebarProps {
   activeView: string;
@@ -25,10 +24,10 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'tasks', label: 'Tâches', icon: CheckSquare },
-    { id: 'calendar', label: 'Agenda', icon: Calendar },
-    { id: 'finance', label: 'Finances', icon: DollarSign },
-    { id: 'pomodoro', label: 'Pomodoro', icon: Timer },
+    { id: 'finance', label: 'Transactions', icon: DollarSign },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+    { id: 'budgets', label: 'Budgets', icon: PieChart },
+    { id: 'reports', label: 'Rapports', icon: BarChart3 },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 
@@ -75,7 +74,7 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
           {!isCollapsed && (
             <button
               onClick={handleLogoClick}
-              className="text-xl font-bold text-black dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer focus:outline-none focus:ring-0"
+              className="text-xl font-bold text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer focus:outline-none focus:ring-0"
             >
               MindPlan
             </button>
@@ -83,7 +82,7 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
           {isCollapsed && (
             <button
               onClick={handleLogoClick}
-              className="text-xl font-bold text-black dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer focus:outline-none focus:ring-0"
+              className="text-xl font-bold text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer focus:outline-none focus:ring-0"
               title="MindPlan - Aller au Dashboard"
             >
               MP
@@ -119,12 +118,7 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
-          {/* Pomodoro Indicator */}
-          {!isCollapsed && (
-            <PomodoroIndicator onNavigateToPomodoro={() => handleViewChange('pomodoro')} />
-          )}
-          
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
           {/* Desktop toggle button */}
           <button
             onClick={onToggleCollapse}

@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, CheckSquare, DollarSign, Clock, AlertTriangle, Crown, Wallet } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Target, Calendar } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { supabase, Task, Transaction } from '../../lib/supabase'
+import { supabase, Transaction } from '../../lib/supabase'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useSubscription } from '../../hooks/useSubscription'
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
+import { PremiumFeature } from '../ui/PremiumGuard'
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { FinanceChart } from './FinanceChart'
-import { TaskListSimple } from './TaskListSimple'
-import { TrialStatus } from '../finance/TrialStatus'
 
 interface DashboardStats {
-  tasksCompleted: number
-  tasksTotal: number
-  weeklyExpenses: number
+  totalIncome: number
+  totalExpenses: number
+  netBalance: number
   monthlyBudget: number
-  pomodoroSessions: number
-  upcomingEvents: number
-  currentBalance: number
+  budgetUsed: number
+  transactionsCount: number
+  topCategory: string
 }
-
 
 interface DashboardProps {
   onNavigate: (section: string, params?: any) => void
@@ -28,310 +26,355 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { user } = useAuthContext()
-  const { isPremium } = useSubscription()
+  const { isPremium, getTrialDaysLeft, subscription } = useSubscription()
   const [stats, setStats] = useState<DashboardStats>({
-    tasksCompleted: 0,
-    tasksTotal: 0,
-    weeklyExpenses: 0,
+    totalIncome: 0,
+    totalExpenses: 0,
+    netBalance: 0,
     monthlyBudget: 1000,
-    pomodoroSessions: 0,
-    upcomingEvents: 0,
-    currentBalance: 0
+    budgetUsed: 0,
+    transactionsCount: 0,
+    topCategory: 'Aucune'
   })
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (user) {
-      loadDashboardStats()
-    }
-    
-    // Update time every second
-    const timeInterval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    return () => {
-      clearInterval(timeInterval)
+      loadDashboardData()
     }
   }, [user])
 
-  const loadDashboardStats = async () => {
+  const loadDashboardData = async () => {
     if (!user) return
 
-    const now = new Date()
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
-    const monthStart = startOfMonth(now)
-    const monthEnd = endOfMonth(now)
-
     try {
-      // Get tasks stats
-      const { data: tasksData } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
+      setLoading(true)
+      
+      // Charger les transactions du mois actuel
+      const startOfCurrentMonth = startOfMonth(new Date())
+      const endOfCurrentMonth = endOfMonth(new Date())
 
-      setTasks(tasksData || [])
-
-      const tasksTotal = tasksData?.length || 0
-      const tasksCompleted = tasksData?.filter(t => t.completed).length || 0
-
-      // Get all transactions for balance calculation
-      const { data: allTransactions } = await supabase
+      const { data: transactions, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', user.id)
+        .gte('date', startOfCurrentMonth.toISOString().split('T')[0])
+        .lte('date', endOfCurrentMonth.toISOString().split('T')[0])
+        .order('date', { ascending: false })
 
-      setTransactions(allTransactions || [])
+      if (error) {
+        console.error('Error loading transactions:', error)
+        return
+      }
 
-      // Calculate current balance
-      const currentBalance = allTransactions?.reduce((balance, t) => {
-        return t.type === 'income' ? balance + t.amount : balance - t.amount
-      }, 0) || 0
+      // Calculer les statistiques
+      const income = transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0
+      const expenses = transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0
+      const netBalance = income - expenses
 
-      // Get weekly expenses
-      const weeklyExpenses = allTransactions
-        ?.filter(t => t.type === 'expense' && 
-          new Date(t.date) >= weekStart && 
-          new Date(t.date) <= weekEnd)
-        ?.reduce((sum, t) => sum + t.amount, 0) || 0
+      // Trouver la catégorie la plus dépensée
+      const categoryExpenses = transactions?.filter(t => t.type === 'expense')
+        .reduce((acc, t) => {
+          acc[t.category] = (acc[t.category] || 0) + t.amount
+          return acc
+        }, {} as Record<string, number>) || {}
 
-      // Get pomodoro sessions today
-      const { data: pomodoros } = await supabase
-        .from('pomodoro_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('created_at', new Date().toISOString().split('T')[0])
-
-      const pomodoroSessions = pomodoros?.filter(p => p.completed).length || 0
-
-      // Get upcoming events this week
-      const { data: events } = await supabase
-        .from('events')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('start_time', now.toISOString())
-        .lte('start_time', weekEnd.toISOString())
-
-      const upcomingEvents = events?.length || 0
+      const topCategory = Object.keys(categoryExpenses).length > 0 
+        ? Object.entries(categoryExpenses).sort(([,a], [,b]) => b - a)[0][0]
+        : 'Aucune'
 
       setStats({
-        tasksCompleted,
-        tasksTotal,
-        weeklyExpenses,
-        monthlyBudget: 1000, // TODO: Get from user profile
-        pomodoroSessions,
-        upcomingEvents,
-        currentBalance
+        totalIncome: income,
+        totalExpenses: expenses,
+        netBalance,
+        monthlyBudget: 1000, // Budget par défaut
+        budgetUsed: expenses,
+        transactionsCount: transactions?.length || 0,
+        topCategory
       })
+
+      // Charger les 5 dernières transactions
+      const { data: recent, error: recentError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(5)
+
+      if (!recentError) {
+        setRecentTransactions(recent || [])
+      }
+
     } catch (error) {
-      console.error('Error loading dashboard stats:', error)
+      console.error('Error loading dashboard data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const completionRate = stats.tasksTotal > 0 ? (stats.tasksCompleted / stats.tasksTotal) * 100 : 0
-  const budgetUsed = (stats.weeklyExpenses / (stats.monthlyBudget / 4)) * 100
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount)
+  }
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-8"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Bonjour !
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Voici un résumé de votre semaine
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {format(currentTime, 'HH:mm', { locale: fr })}
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {format(currentTime, 'EEEE dd MMMM yyyy', { locale: fr })}
-          </div>
-        </div>
-      </div>
-
-
-      {/* Trial Status */}
-      <TrialStatus />
-
-      {/* Current Balance Card */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-white" />
-            </div>
+    <div className="p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Solde Actuel
-              </h3>
-              <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
-                {stats.currentBalance.toFixed(2)}€
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <Card hover>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tâches</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.tasksCompleted}/{stats.tasksTotal}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {completionRate.toFixed(0)}% complétées
-              </p>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-              <CheckSquare className="w-6 h-6 text-black dark:text-white" />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Budget semaine</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.weeklyExpenses.toFixed(0)}€
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {budgetUsed.toFixed(0)}% utilisé
-              </p>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-              <DollarSign className="w-6 h-6 text-black dark:text-white" />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pomodoros</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.pomodoroSessions}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Aujourd'hui
-              </p>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-              <Clock className="w-6 h-6 text-black dark:text-white" />
-            </div>
-          </div>
-        </Card>
-
-        <Card hover>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Événements</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.upcomingEvents}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Cette semaine
-              </p>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-              <Calendar className="w-6 h-6 text-black dark:text-white" />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-
-      {/* Alerts */}
-      {budgetUsed > 80 && (
-        <Card className="border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
-          <div className="flex items-center space-x-3">
-            <AlertTriangle className="w-5 h-5 text-black dark:text-white" />
-            <div>
-              <h4 className="font-semibold text-gray-900 dark:text-gray-100">Attention au budget !</h4>
-              <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">
-                Vous avez déjà utilisé {budgetUsed.toFixed(0)}% de votre budget hebdomadaire.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Charts and Lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <FinanceChart transactions={transactions} />
-        <TaskListSimple tasks={tasks} onNavigate={onNavigate} />
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <Card className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Actions rapides</h3>
-          <div className="space-y-3">
-            <button 
-              onClick={() => onNavigate('tasks', { openAddForm: true })}
-              className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="font-medium text-gray-900 dark:text-gray-100">Ajouter une tâche</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Créer une nouvelle tâche</div>
-            </button>
-            <button 
-              onClick={() => onNavigate('finance')}
-              className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="font-medium text-gray-900 dark:text-gray-100">Voir mes finances</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Accéder au suivi financier</div>
-            </button>
-            <button 
-              onClick={() => onNavigate('finance', { openAddForm: true })}
-              className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="font-medium text-gray-900 dark:text-gray-100">Nouvelle dépense</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Enregistrer une dépense</div>
-            </button>
-            <button 
-              onClick={() => onNavigate('pomodoro')}
-              className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="font-medium text-gray-900 dark:text-gray-100">Session Pomodoro</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Démarrer un cycle de travail</div>
-            </button>
-            <button 
-              onClick={() => onNavigate('calendar')}
-              className="w-full text-left p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="font-medium text-gray-900 dark:text-gray-100">Nouvel événement</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Ajouter un événement à l'agenda</div>
-            </button>
-          </div>
-        </Card>
-
-        <Card className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Prochains événements</h3>
-          <div className="space-y-3">
-            {stats.upcomingEvents > 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-                <p className="text-gray-600 dark:text-gray-400">Chargement des événements...</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                Dashboard Financier
+              </h1>
+              <div className="flex items-center space-x-2">
+                <p className="text-gray-600 dark:text-gray-400">
+                  Vue d'ensemble de vos finances
+                </p>
+                <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full font-medium">
+                  {format(new Date(), 'MMMM yyyy', { locale: fr })}
+                </span>
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-                <p className="text-gray-600 dark:text-gray-400">Aucun événement planifié</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">Ajoutez un événement à votre agenda</p>
+            </div>
+            
+            {/* Statut Premium */}
+            {isPremium() && (
+              <div className="flex items-center space-x-2">
+                {subscription?.status === 'trial' && getTrialDaysLeft() > 0 ? (
+                  <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        Essai Premium - {getTrialDaysLeft()} jour{getTrialDaysLeft() > 1 ? 's' : ''} restant{getTrialDaysLeft() > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-4 py-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
+                      <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                        Premium Actif
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </Card>
+        </div>
 
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenus</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(stats.totalIncome)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Dépenses</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {formatCurrency(stats.totalExpenses)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Solde Net</p>
+                <p className={`text-2xl font-bold ${stats.netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {formatCurrency(stats.netBalance)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                <Wallet className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Budget Utilisé</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {Math.round((stats.budgetUsed / stats.monthlyBudget) * 100)}%
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatCurrency(stats.budgetUsed)} / {formatCurrency(stats.monthlyBudget)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Chart Section */}
+          <div className="lg:col-span-2">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Évolution Financière
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigate('finance')}
+                >
+                  Voir tout
+                </Button>
+              </div>
+              <FinanceChart transactions={recentTransactions} />
+            </Card>
+          </div>
+
+          {/* Recent Transactions */}
+          <div>
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Transactions Récentes
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onNavigate('finance')}
+                >
+                  Voir tout
+                </Button>
+              </div>
+              
+              {recentTransactions.length === 0 ? (
+                <div className="text-center py-8">
+                  <DollarSign className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">Aucune transaction</p>
+                  <Button
+                    onClick={() => onNavigate('finance')}
+                    size="sm"
+                  >
+                    Ajouter une transaction
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentTransactions.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          transaction.type === 'income' 
+                            ? 'bg-emerald-100 dark:bg-emerald-900/20' 
+                            : 'bg-red-100 dark:bg-red-900/20'
+                        }`}>
+                          {transaction.type === 'income' ? (
+                            <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                            {transaction.title}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {transaction.category}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-semibold text-sm ${
+                          transaction.type === 'income' 
+                            ? 'text-emerald-600 dark:text-emerald-400' 
+                            : 'text-red-600 dark:text-red-400'
+                        }`}>
+                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {format(new Date(transaction.date), 'dd/MM', { locale: fr })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+              Actions Rapides
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => onNavigate('finance')}
+                className="h-16 flex flex-col items-center justify-center space-y-2"
+              >
+                <DollarSign className="w-6 h-6" />
+                <span>Ajouter Transaction</span>
+              </Button>
+              <PremiumFeature featureName="Analytics">
+                <Button
+                  variant="outline"
+                  onClick={() => onNavigate('analytics')}
+                  className="h-16 flex flex-col items-center justify-center space-y-2"
+                >
+                  <TrendingUp className="w-6 h-6" />
+                  <span>Voir Analytics</span>
+                </Button>
+              </PremiumFeature>
+              <PremiumFeature featureName="Budgets">
+                <Button
+                  variant="outline"
+                  onClick={() => onNavigate('budgets')}
+                  className="h-16 flex flex-col items-center justify-center space-y-2"
+                >
+                  <Target className="w-6 h-6" />
+                  <span>Gérer Budget</span>
+                </Button>
+              </PremiumFeature>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   )

@@ -6,20 +6,28 @@ import { AuthFormSimple } from './components/auth/AuthFormSimple'
 import { LandingPage } from './components/landing/LandingPage'
 import Sidebar from './components/layout/Sidebar'
 import { Dashboard } from './components/dashboard/Dashboard'
-import { TaskList } from './components/tasks/TaskList'
 import { FinanceTracker } from './components/finance/FinanceTracker'
-import { PomodoroTimer } from './components/pomodoro/PomodoroTimer'
-import { Calendar } from './components/calendar/Calendar'
+import { Analytics } from './components/finance/Analytics'
+import { Budgets } from './components/finance/Budgets'
+import { Reports } from './components/finance/Reports'
 import { Settings } from './components/settings/Settings'
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuthContext()
   const [activeSection, setActiveSection] = useState('dashboard')
   const [showAuth, setShowAuth] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [sectionParams, setSectionParams] = useState<any>({})
 
-  // S'assurer que l'utilisateur est redirigé vers le dashboard après authentification
+  // Sauvegarder la section active dans localStorage à chaque changement
+  React.useEffect(() => {
+    if (user && activeSection) {
+      localStorage.setItem('lastActiveSection', activeSection)
+    }
+  }, [activeSection, user])
+
+  // Restaurer la dernière section visitée ou rediriger selon les cas spéciaux
   React.useEffect(() => {
     if (user) {
       // Vérifier si c'est une redirection spéciale pour l'essai Premium (seulement pour les nouvelles inscriptions)
@@ -32,8 +40,14 @@ const AppContent: React.FC = () => {
         localStorage.removeItem('wantsPremium') // Nettoyer le flag
         localStorage.removeItem('isNewSignup') // Nettoyer le flag
       } else {
-        // Pour les connexions d'utilisateurs existants, toujours aller au dashboard
-        setActiveSection('dashboard')
+        // Pour les connexions d'utilisateurs existants, restaurer la dernière page visitée
+        const lastActiveSection = localStorage.getItem('lastActiveSection')
+        if (lastActiveSection && ['dashboard', 'finance', 'analytics', 'budgets', 'reports', 'settings'].includes(lastActiveSection)) {
+          setActiveSection(lastActiveSection)
+        } else {
+          // Si aucune section valide n'est trouvée, aller au dashboard par défaut
+          setActiveSection('dashboard')
+        }
         // Nettoyer les flags au cas où
         localStorage.removeItem('wantsPremium')
         localStorage.removeItem('isNewSignup')
@@ -55,9 +69,12 @@ const AppContent: React.FC = () => {
   // Si l'utilisateur n'est pas connecté, afficher la landing page ou le formulaire d'auth
   if (!user) {
     if (showAuth) {
-      return <AuthFormSimple onBackToLanding={() => setShowAuth(false)} />
+      return <AuthFormSimple onBackToLanding={() => setShowAuth(false)} initialMode={authMode} />
     }
-    return <LandingPage onNavigateToAuth={() => setShowAuth(true)} />
+    return <LandingPage onNavigateToAuth={(mode = 'login') => {
+      setAuthMode(mode)
+      setShowAuth(true)
+    }} />
   }
 
   const handleNavigate = (section: string, params?: any) => {
@@ -69,14 +86,14 @@ const AppContent: React.FC = () => {
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard onNavigate={handleNavigate} />
-      case 'tasks':
-        return <TaskList initialParams={sectionParams} />
       case 'finance':
         return <FinanceTracker initialParams={sectionParams} />
-      case 'pomodoro':
-        return <PomodoroTimer />
-      case 'calendar':
-        return <Calendar />
+      case 'analytics':
+        return <Analytics />
+      case 'budgets':
+        return <Budgets />
+      case 'reports':
+        return <Reports />
       case 'settings':
         return <Settings />
       default:
