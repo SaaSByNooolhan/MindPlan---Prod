@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { priceId, userId, userEmail, successUrl, cancelUrl } = req.body
+    const { priceId, userId, userEmail, successUrl, cancelUrl, withTrial = true } = req.body
 
     if (!priceId || !userId || !userEmail) {
       return res.status(400).json({ error: 'Missing required parameters' })
@@ -53,8 +53,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Error creating customer' })
     }
 
-    // Créer la session de checkout avec essai gratuit de 7 jours
-    const session = await stripe.checkout.sessions.create({
+    // Créer la session de checkout
+    const sessionConfig = {
       customer: customer.id,
       payment_method_types: ['card'],
       line_items: [
@@ -70,12 +70,18 @@ export default async function handler(req, res) {
         userId: userId,
       },
       subscription_data: {
-        trial_period_days: 7, // Toujours 7 jours d'essai
         metadata: {
           userId: userId,
         },
       },
-    })
+    }
+
+    // Ajouter l'essai gratuit seulement si demandé
+    if (withTrial) {
+      sessionConfig.subscription_data.trial_period_days = 7
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig)
 
     res.status(200).json({ sessionId: session.id })
   } catch (error) {

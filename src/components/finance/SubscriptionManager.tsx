@@ -1,549 +1,367 @@
-import React, { useState, useEffect } from 'react'
-import { CreditCard, Plus, Trash2, DollarSign } from 'lucide-react'
+import React, { useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { Input } from '../ui/Input'
-import { supabase, Subscription, UserSubscription } from '../../lib/supabase'
-import { useAuthContext } from '../../contexts/AuthContext'
-import { format, parseISO } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { 
+  Crown, 
+  CreditCard, 
+  CheckCircle, 
+  AlertTriangle,
+  Loader2,
+  ExternalLink,
+  Zap
+} from 'lucide-react'
+import { useSubscription } from '../../hooks/useSubscription'
+
+export const SubscriptionManager: React.FC = () => {
+  const { 
+    subscription, 
+    upgradeToPremium, 
+    manageSubscription, 
+    getTrialDaysLeft,
+    startFreeTrial,
+    loading 
+  } = useSubscription()
+  
+  const [isUpgrading, setIsUpgrading] = useState(false)
+  const [isManaging, setIsManaging] = useState(false)
+  const [isStartingTrial, setIsStartingTrial] = useState(false)
 
 
-
-interface SubscriptionManagerProps {
-  onSubscriptionAdded?: () => void
-  onSubscriptionDeleted?: () => void
-}
-
-export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onSubscriptionAdded, onSubscriptionDeleted }) => {
-  const { user } = useAuthContext()
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
-  const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([])
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [newSubscription, setNewSubscription] = useState({
-    title: '',
-    amount: '',
-    category: '',
-    type: 'expense' as 'income' | 'expense',
-    recurrence_type: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'yearly',
-    recurrence_interval: 1,
-    next_occurrence: format(new Date(), 'yyyy-MM-dd'),
-    end_date: ''
-  })
-
-  const categories = {
-    income: ['Salaire', 'Bourse', 'Travail', 'Parents', 'Pension', 'Dividendes', 'Autres revenus'],
-    expense: ['Loyer', 'Électricité', 'Internet', 'Téléphone', 'Assurance', 'Gym', 'Netflix', 'Spotify', 'Amazon Prime', 'Adobe Creative', 'Microsoft 365', 'Google Workspace', 'Dropbox', 'Canva Pro', 'Figma', 'Notion', 'Autres dépenses']
-  }
-
-  useEffect(() => {
-    if (user) {
-      loadSubscription()
-      loadUserSubscriptions()
-    }
-  }, [user])
-
-  const loadSubscription = async () => {
-    if (!user) return
-
+  const handleUpgradeDirect = async () => {
+    setIsUpgrading(true)
     try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading subscription:', error)
-      } else {
-        setSubscription(data)
+      const result = await upgradeToPremium(true) // Sans essai gratuit
+      if (result?.error) {
+        alert(`Erreur: ${result.error}`)
       }
     } catch (error) {
-      console.error('Error in loadSubscription:', error)
-    }
-  }
-
-  const loadUserSubscriptions = async () => {
-    if (!user) return
-
-    try {
-      const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('next_occurrence', { ascending: true })
-
-      if (error) {
-        console.error('Error loading user subscriptions:', error)
-      } else {
-        setUserSubscriptions(data || [])
-      }
-    } catch (error) {
-      console.error('Error in loadUserSubscriptions:', error)
-    }
-  }
-
-  const addUserSubscription = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user || !newSubscription.title.trim() || !newSubscription.amount) return
-
-    setLoading(true)
-    try {
-      const subscriptionData = {
-        user_id: user.id,
-        title: newSubscription.title.trim(),
-        amount: parseFloat(newSubscription.amount),
-        category: newSubscription.category,
-        type: newSubscription.type,
-        recurrence_type: newSubscription.recurrence_type,
-        recurrence_interval: newSubscription.recurrence_interval,
-        next_occurrence: newSubscription.next_occurrence,
-        end_date: newSubscription.end_date || null,
-        is_active: true
-      }
-
-      // Insert the subscription
-      const { error: subscriptionError } = await supabase
-        .from('user_subscriptions')
-        .insert(subscriptionData)
-
-      if (subscriptionError) {
-        console.error('Error adding subscription:', subscriptionError)
-        alert(`Erreur lors de l'ajout de l'abonnement: ${subscriptionError.message}`)
-        return
-      }
-
-      // Note: We don't create a transaction automatically anymore
-      // Subscriptions are managed separately from transactions
-      console.log('Subscription created successfully')
-
-      // Reset form and reload data
-      setNewSubscription({
-        title: '',
-        amount: '',
-        category: '',
-        type: 'expense',
-        recurrence_type: 'monthly',
-        recurrence_interval: 1,
-        next_occurrence: format(new Date(), 'yyyy-MM-dd'),
-        end_date: ''
-      })
-      setShowAddForm(false)
-      loadUserSubscriptions()
-      
-      // Add a small delay to ensure data is synchronized
-      setTimeout(() => {
-        // Notify parent component to reload transactions
-        if (onSubscriptionAdded) {
-          onSubscriptionAdded()
-        }
-      }, 300)
-      
-      // Show success message
-      alert(`${newSubscription.title} ajouté avec succès !`)
-      
-    } catch (error) {
-      console.error('Error in addUserSubscription:', error)
-      alert('Une erreur est survenue lors de l\'ajout de l\'abonnement')
+      console.error('Error upgrading direct:', error)
+      alert('Erreur lors de l\'upgrade. Veuillez réessayer.')
     } finally {
-      setLoading(false)
+      setIsUpgrading(false)
     }
   }
 
-  const deleteUserSubscription = async (subscriptionId: string) => {
-    if (!user) return
-
-    const confirmed = window.confirm(
-      'Êtes-vous sûr de vouloir supprimer cet abonnement ? La transaction correspondante sera aussi supprimée.'
-    )
-
-    if (!confirmed) return
-
+  const handleManageSubscription = async () => {
+    setIsManaging(true)
     try {
-      // First, get the subscription details to find the corresponding transaction
-      const { data: subscription, error: fetchError } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('id', subscriptionId)
-        .eq('user_id', user.id)
-        .single()
-
-      if (fetchError) {
-        console.error('Error fetching subscription:', fetchError)
-        alert('Erreur lors de la récupération de l\'abonnement')
-        return
+      const result = await manageSubscription()
+      if (result?.error) {
+        alert(`Erreur: ${result.error}`)
       }
-
-      // Delete the subscription
-      const { error: subscriptionError } = await supabase
-        .from('user_subscriptions')
-        .update({ is_active: false })
-        .eq('id', subscriptionId)
-        .eq('user_id', user.id)
-
-      if (subscriptionError) {
-        console.error('Error deleting subscription:', subscriptionError)
-        alert('Erreur lors de la suppression de l\'abonnement')
-        return
-      }
-
-      // Find and delete the corresponding transaction
-      const transactionTitle = `${subscription.title} (${subscription.recurrence_type === 'monthly' ? 'Mensuel' : 
-                            subscription.recurrence_type === 'weekly' ? 'Hebdomadaire' : 
-                            subscription.recurrence_type === 'yearly' ? 'Annuel' : 'Quotidien'})`
-
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('title', transactionTitle)
-        .eq('amount', subscription.amount)
-        .eq('type', subscription.type)
-        .eq('category', subscription.category)
-        .eq('date', subscription.next_occurrence)
-
-      if (transactionError) {
-        console.error('Error deleting transaction:', transactionError)
-        // Don't show error to user as subscription was deleted successfully
-        console.log('Transaction might not exist or already deleted')
-      } else {
-        console.log('Corresponding transaction deleted successfully')
-      }
-
-      // Reload subscriptions
-      loadUserSubscriptions()
-      
-      // Add a small delay to ensure data is synchronized
-      setTimeout(() => {
-        // Notify parent component to reload transactions
-        if (onSubscriptionAdded) {
-          onSubscriptionAdded()
-        }
-        
-        if (onSubscriptionDeleted) {
-          onSubscriptionDeleted()
-        }
-      }, 300)
-
-      alert('Abonnement supprimé avec succès ! La transaction correspondante a été supprimée.')
-
     } catch (error) {
-      console.error('Error in deleteUserSubscription:', error)
-      alert('Une erreur est survenue lors de la suppression de l\'abonnement')
+      console.error('Error managing subscription:', error)
+      alert('Erreur lors de l\'accès au portail. Veuillez réessayer.')
+    } finally {
+      setIsManaging(false)
     }
   }
 
-  const getTotalMonthlySubscriptions = () => {
-    return userSubscriptions.reduce((total, sub) => {
-      let monthlyAmount = 0
-      if (sub.recurrence_type === 'monthly') {
-        monthlyAmount = sub.amount
-      } else if (sub.recurrence_type === 'weekly') {
-        monthlyAmount = sub.amount * 4.33 // Approximate weeks per month
-      } else if (sub.recurrence_type === 'yearly') {
-        monthlyAmount = sub.amount / 12
-      } else if (sub.recurrence_type === 'daily') {
-        monthlyAmount = sub.amount * 30 // Approximate days per month
+  const handleStartFreeTrial = async () => {
+    setIsStartingTrial(true)
+    try {
+      const result = await startFreeTrial()
+      if (result?.error) {
+        alert(`Erreur: ${result.error}`)
+      } else {
+        alert('🎉 Essai gratuit de 7 jours démarré ! Profitez de toutes les fonctionnalités Premium.')
       }
-      
-      return sub.type === 'income' ? total + monthlyAmount : total - monthlyAmount
-    }, 0)
+    } catch (error) {
+      console.error('Error starting free trial:', error)
+      alert('Erreur lors du démarrage de l\'essai gratuit. Veuillez réessayer.')
+    } finally {
+      setIsStartingTrial(false)
+    }
   }
 
-  const getMonthlyIncome = () => {
-    return userSubscriptions
-      .filter(sub => sub.type === 'income')
-      .reduce((total, sub) => {
-        if (sub.recurrence_type === 'monthly') {
-          return total + sub.amount
-        } else if (sub.recurrence_type === 'weekly') {
-          return total + (sub.amount * 4.33)
-        } else if (sub.recurrence_type === 'yearly') {
-          return total + (sub.amount / 12)
-        } else if (sub.recurrence_type === 'daily') {
-          return total + (sub.amount * 30)
-        }
-        return total
-      }, 0)
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
   }
 
-  const getMonthlyExpenses = () => {
-    return userSubscriptions
-      .filter(sub => sub.type === 'expense')
-      .reduce((total, sub) => {
-        if (sub.recurrence_type === 'monthly') {
-          return total + sub.amount
-        } else if (sub.recurrence_type === 'weekly') {
-          return total + (sub.amount * 4.33)
-        } else if (sub.recurrence_type === 'yearly') {
-          return total + (sub.amount / 12)
-        } else if (sub.recurrence_type === 'daily') {
-          return total + (sub.amount * 30)
-        }
-        return total
-      }, 0)
+  const getSubscriptionStatus = () => {
+    if (!subscription) return 'free'
+    
+    // Si c'est un plan freemium, toujours retourner 'free'
+    if (subscription.plan_type === 'free') {
+      return 'free'
+    }
+    
+    // Si c'est un plan premium, vérifier le statut
+    if (subscription.plan_type === 'premium') {
+      if (subscription.status === 'trial') {
+        return 'trial'
+      } else if (subscription.status === 'active') {
+        return 'active'
+      } else if (subscription.status === 'cancelled') {
+        return 'cancelled'
+      } else if (subscription.status === 'expired') {
+        return 'expired'
+      }
+    }
+    
+    // Par défaut, considérer comme freemium
+    return 'free'
   }
 
+  const status = getSubscriptionStatus()
+
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Chargement...</span>
+        </div>
+      </Card>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Subscription Status */}
-      {subscription && (
-        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Abonnement {subscription.plan_type === 'premium' ? 'Premium' : 'Gratuit'}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Statut: {subscription.status === 'active' ? 'Actif' : subscription.status}
-                </p>
-                {subscription.end_date && (
-                  <p className="text-xs text-gray-500 dark:text-gray-500">
-                    Expire le: {format(parseISO(subscription.end_date), 'dd/MM/yyyy', { locale: fr })}
-                  </p>
+      {/* Statut actuel */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Votre Abonnement
+          </h2>
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+            status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200' :
+            status === 'trial' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200' :
+            status === 'expired' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200' :
+            'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-200'
+          }`}>
+            {status === 'active' ? 'Premium Actif' :
+             status === 'trial' ? 'Essai Gratuit' :
+             status === 'expired' ? 'Abonnement Expiré' :
+             status === 'cancelled' ? 'Annulé' :
+             'Gratuit'}
+          </div>
+        </div>
+
+        {status === 'free' && (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Crown className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Version Gratuite
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Vous utilisez la version gratuite de MindPlan
+            </p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                💡 Limite actuelle : 10 transactions par mois, graphiques simples, export CSV
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Button 
+                onClick={handleStartFreeTrial}
+                disabled={isStartingTrial}
+                className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
+              >
+                {isStartingTrial ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Démarrage...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    🎉 Essai Gratuit 7 jours
+                  </>
                 )}
+              </Button>
+              
+              <Button 
+                onClick={handleUpgradeDirect}
+                disabled={isUpgrading}
+                variant="outline"
+                className="w-full"
+              >
+                {isUpgrading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Chargement...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Paiement Direct
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {status === 'trial' && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Crown className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div>
+                <h3 className="font-semibold text-blue-800 dark:text-blue-200">
+                  Essai Premium Gratuit
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  {getTrialDaysLeft()} jour{getTrialDaysLeft() !== 1 ? 's' : ''} restant{getTrialDaysLeft() !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
-            {subscription.plan_type === 'free' && (
-              <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white">
-                Passer à Premium
-              </Button>
+            
+            {subscription?.trial_end && (
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <p>Fin de l'essai : {formatDate(subscription.trial_end)}</p>
+              </div>
             )}
-          </div>
-        </Card>
-      )}
 
-      {/* User Subscriptions Summary */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Revenus & Dépenses Récurrents
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Salaires, loyers, abonnements, factures récurrentes...
-            </p>
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-yellow-800 dark:text-yellow-200">
+                    Action requise
+                  </h4>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                    Votre essai se termine bientôt. Configurez votre paiement pour continuer à profiter de Premium.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-right">
-            <p className={`text-2xl font-bold ${getTotalMonthlySubscriptions() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {getTotalMonthlySubscriptions() >= 0 ? '+' : ''}{getTotalMonthlySubscriptions().toFixed(2)}€
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {userSubscriptions.length} élément{userSubscriptions.length !== 1 ? 's' : ''} récurrent{userSubscriptions.length !== 1 ? 's' : ''}
+        )}
+
+        {status === 'active' && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+          <div>
+                <h3 className="font-semibold text-green-800 dark:text-green-200">
+                  Premium Actif
+            </h3>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  Vous profitez de toutes les fonctionnalités Premium
             </p>
           </div>
         </div>
         
-        {userSubscriptions.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenus mensuels</p>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                +{getMonthlyIncome().toFixed(2)}€
-              </p>
+            {subscription?.end_date && (
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <p>Prochain paiement : {formatDate(subscription.end_date)}</p>
             </div>
-            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Dépenses mensuelles</p>
-              <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                -{getMonthlyExpenses().toFixed(2)}€
-              </p>
-            </div>
+            )}
           </div>
         )}
         
-        {userSubscriptions.length === 0 && (
-          <div className="text-center py-8">
-            <CreditCard className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Aucun élément récurrent enregistré</p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">Ajoutez vos salaires, loyers, abonnements pour suivre vos finances récurrentes</p>
+        {status === 'expired' && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div>
+                <h3 className="font-semibold text-red-800 dark:text-red-200">
+                  Abonnement Expiré
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  Votre paiement n'a pas pu être traité. Mettez à jour vos informations de paiement.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </Card>
 
-      {/* Add Subscription Form */}
-      {showAddForm && (
-        <Card>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Nouvel élément récurrent</h3>
-          <form onSubmit={addUserSubscription} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Nom"
-                value={newSubscription.title}
-                onChange={(e) => setNewSubscription({ ...newSubscription, title: e.target.value })}
-                placeholder="ex: Salaire, Loyer, Netflix..."
-                required
-              />
-              
-              <Input
-                label="Montant"
-                type="number"
-                step="0.01"
-                value={newSubscription.amount}
-                onChange={(e) => setNewSubscription({ ...newSubscription, amount: e.target.value })}
-                placeholder="0.00"
-                required
-              />
+      {/* Actions */}
+      {status === 'free' && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Passer à Premium
+          </h3>
+          <div className="space-y-4">
+            <div className="max-w-md mx-auto">
+              <div className="p-6 border border-emerald-200 dark:border-emerald-800 rounded-lg text-center">
+                <div className="flex items-center justify-center space-x-3 mb-4">
+                  <Zap className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                  <h4 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Passer à Premium
+                  </h4>
+            </div>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Accédez à toutes les fonctionnalités Premium pour 9.99€/mois
+                </p>
+                <Button 
+                  onClick={handleUpgradeDirect}
+                  disabled={isUpgrading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isUpgrading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Chargement...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5 mr-2" />
+                      S'abonner maintenant
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Type
-                </label>
-                <select
-                  value={newSubscription.type}
-                  onChange={(e) => setNewSubscription({ ...newSubscription, type: e.target.value as any, category: '' })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="income">Revenu</option>
-                  <option value="expense">Dépense</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Catégorie
-                </label>
-                <select
-                  value={newSubscription.category}
-                  onChange={(e) => setNewSubscription({ ...newSubscription, category: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"
-                  required
-                >
-                  <option value="">Sélectionner</option>
-                  {categories[newSubscription.type].map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Fréquence
-                </label>
-                <select
-                  value={newSubscription.recurrence_type}
-                  onChange={(e) => setNewSubscription({ ...newSubscription, recurrence_type: e.target.value as any })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="monthly">Mensuel</option>
-                  <option value="weekly">Hebdomadaire</option>
-                  <option value="yearly">Annuel</option>
-                  <option value="daily">Quotidien</option>
-                </select>
-              </div>
-
-              <Input
-                label="Prochaine occurrence"
-                type="date"
-                value={newSubscription.next_occurrence}
-                onChange={(e) => setNewSubscription({ ...newSubscription, next_occurrence: e.target.value })}
-                required
-              />
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Avec Premium, vous obtenez :
+              </h4>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>• Transactions illimitées</li>
+                <li>• Analytics avancées et graphiques interactifs</li>
+                <li>• Budgets intelligents avec alertes</li>
+                <li>• Rapports détaillés et export PDF</li>
+                <li>• Objectifs financiers avancés</li>
+                <li>• Support prioritaire</li>
+              </ul>
             </div>
-
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-              <Button type="submit" className="w-full sm:w-auto" disabled={loading}>
-                {loading ? 'Ajout...' : 'Ajouter l\'élément récurrent'}
-              </Button>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => setShowAddForm(false)}
-                className="w-full sm:w-auto"
-              >
-                Annuler
-              </Button>
-            </div>
-          </form>
+          </div>
         </Card>
       )}
 
-      {/* User Subscriptions List */}
-      {userSubscriptions.length > 0 && (
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Mes Éléments Récurrents
+      {(status === 'trial' || status === 'active' || status === 'expired') && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Gestion de l'Abonnement
             </h3>
-            <Button onClick={() => setShowAddForm(true)} size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter
-            </Button>
-          </div>
-          
-          <div className="space-y-3">
-            {userSubscriptions.map((sub) => (
-              <div key={sub.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className={`p-2 rounded-full ${sub.type === 'income' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                    <DollarSign className={`w-4 h-4 ${sub.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{sub.title}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{sub.category}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      {sub.recurrence_interval === 1 ? (
-                        <>
-                          {sub.recurrence_type === 'daily' && 'Tous les jours'}
-                          {sub.recurrence_type === 'weekly' && 'Toutes les semaines'}
-                          {sub.recurrence_type === 'monthly' && 'Tous les mois'}
-                          {sub.recurrence_type === 'yearly' && 'Tous les ans'}
+          <div className="space-y-4">
+            <Button 
+              onClick={handleManageSubscription}
+              disabled={isManaging}
+              variant="outline"
+              className="w-full"
+            >
+              {isManaging ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Chargement...
                         </>
                       ) : (
                         <>
-                          Tous les {sub.recurrence_interval} {
-                            sub.recurrence_type === 'daily' && 'jours'
-                          }{
-                            sub.recurrence_type === 'weekly' && 'semaines'
-                          }{
-                            sub.recurrence_type === 'monthly' && 'mois'
-                          }{
-                            sub.recurrence_type === 'yearly' && 'ans'
-                          }
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Gérer mon abonnement
                         </>
                       )}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    <p className={`font-semibold ${sub.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {sub.type === 'income' ? '+' : '-'}{sub.amount.toFixed(2)}€
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Prochaine: {format(parseISO(sub.next_occurrence), 'dd/MM/yyyy', { locale: fr })}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => deleteUserSubscription(sub.id)}
-                    className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    title="Supprimer cet élément"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+            </Button>
+            
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              Gérez vos informations de paiement, téléchargez vos factures et annulez votre abonnement
+            </p>
+            
           </div>
         </Card>
-      )}
-
-      {/* Add Button when no subscriptions */}
-      {userSubscriptions.length === 0 && !showAddForm && (
-        <div className="text-center">
-          <Button onClick={() => setShowAddForm(true)} size="lg">
-            <Plus className="w-5 h-5 mr-2" />
-            Ajouter mon premier élément récurrent
-          </Button>
-        </div>
       )}
     </div>
   )

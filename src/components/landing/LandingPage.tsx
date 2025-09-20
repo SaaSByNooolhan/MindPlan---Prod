@@ -35,23 +35,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
   const handleUpgrade = async () => {
     try {
       console.log('Bouton Premium cliqué depuis la landing page')
-      const result = await startFreeTrial()
-      
-      if (result?.error === 'User not authenticated') {
-        // Rediriger vers l'inscription avec un paramètre Premium
-        alert('Inscription Premium ! Créez votre compte et démarrez votre essai gratuit de 7 jours.')
-        onNavigateToAuth('signup')
-        return
-      }
-      
-      if (result?.error) {
-        alert('Erreur lors du démarrage de l\'essai. Veuillez réessayer.')
-        return
-      }
+      // Rediriger vers l'inscription pour passer à Premium
+      alert('Inscription Premium ! Créez votre compte et accédez à toutes les fonctionnalités Premium.')
+      onNavigateToAuth('signup')
     } catch (error) {
-      console.error('Error starting free trial:', error)
-      alert('Erreur lors du démarrage de l\'essai. Veuillez vous connecter d\'abord.')
-      onNavigateToAuth('login')
+      console.error('Error upgrading:', error)
+      alert('Erreur lors de l\'upgrade. Veuillez réessayer.')
     }
   }
 
@@ -78,6 +67,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
     // Nettoyer les flags et aller à l'inscription
     localStorage.removeItem('forceSignup')
     localStorage.removeItem('fromDemo')
+    onNavigateToAuth('signup')
+  }
+
+  const handleFreeTrial = () => {
+    // Marquer que l'utilisateur veut un essai gratuit
+    localStorage.setItem('wantsFreeTrial', 'true')
+    localStorage.removeItem('wantsPremium')
+    localStorage.removeItem('forceSignup')
+    localStorage.removeItem('fromDemo')
+    
+    // Rediriger vers l'inscription
     onNavigateToAuth('signup')
   }
 
@@ -133,7 +133,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
       period: '/mois',
       features: [
         'Suivi des dépenses de base',
-        '5 transactions par mois',
+        '10 transactions par mois',
         'Graphiques simples',
         '1 compte bancaire',
         'Export CSV',
@@ -154,7 +154,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         'Objectifs financiers',
         'Export PDF/Excel',
         'Support prioritaire',
-        'Essai gratuit 7 jours'
+        'Accès immédiat'
       ],
       popular: true
     }
@@ -255,9 +255,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               suivre vos dépenses et atteindre vos objectifs financiers.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={handleFreeSignup} className="text-lg px-8 py-4">
-                Commencer gratuitement
+              <Button size="lg" onClick={handleFreeTrial} className="text-lg px-8 py-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
+                🎉 Essai Gratuit 7 jours
                 <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+              <Button variant="outline" size="lg" className="text-lg px-8 py-4" onClick={handleFreeSignup}>
+                Version Gratuite
               </Button>
               <Button variant="outline" size="lg" className="text-lg px-8 py-4" onClick={handleShowDemo}>
                 Démo interactive
@@ -320,7 +323,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <h3 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2">Version Gratuite</h3>
                 <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                  Suivi de base, 5 transactions/mois, graphiques simples, 1 compte
+                  Suivi de base, 10 transactions/mois, graphiques simples, export CSV
                 </p>
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -365,7 +368,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             </p>
             <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 p-4 rounded-lg max-w-2xl mx-auto border border-blue-200 dark:border-blue-800">
               <p className="text-blue-800 dark:text-blue-200 font-medium">
-                🎉 Essai Premium gratuit de 7 jours - Aucune carte de crédit requise
+                🎉 Essai gratuit de 7 jours pour tester toutes les fonctionnalités Premium
               </p>
             </div>
           </div>
@@ -405,19 +408,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                   ))}
                 </ul>
 
-                <Button 
-                  onClick={plan.name === 'Premium' ? handlePremiumSignup : handleFreeSignup}
-                  className={`w-full ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700' : ''}`}
-                  variant={plan.popular ? 'primary' : 'outline'}
-                  disabled={plan.name === 'Premium' && isPremiumLoading}
-                >
-                  {plan.name === 'Gratuit' 
-                    ? 'Commencer gratuitement' 
-                    : isPremiumLoading 
-                      ? 'Chargement...' 
-                      : 'Essai Premium 7 jours'
-                  }
-                </Button>
+                {plan.name === 'Premium' ? (
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={handleFreeTrial}
+                      className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
+                    >
+                      🎉 Essai Gratuit 7 jours
+                    </Button>
+                    <Button 
+                      onClick={handlePremiumSignup}
+                      variant="outline"
+                      className="w-full"
+                      disabled={isPremiumLoading}
+                    >
+                      {isPremiumLoading ? 'Chargement...' : 'Paiement Direct'}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={handleFreeSignup}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Commencer gratuitement
+                  </Button>
+                )}
               </Card>
             ))}
           </div>
@@ -433,10 +449,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
             Rejoignez des milliers d'utilisateurs qui ont déjà amélioré leur situation financière avec MindPlan
           </p>
-          <Button size="lg" onClick={handleFreeSignup} className="text-lg px-8 py-4">
-            Commencer maintenant
-            <ChevronRight className="ml-2 w-5 h-5" />
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={handleFreeTrial} className="text-lg px-8 py-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
+              🎉 Essai Gratuit 7 jours
+              <ChevronRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button variant="outline" size="lg" onClick={handleFreeSignup} className="text-lg px-8 py-4">
+              Version Gratuite
+            </Button>
+          </div>
         </div>
       </section>
 

@@ -16,3 +16,4 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
 export const cn = (...classes: (string | undefined | null | false)[]): string => {
   return classes.filter(Boolean).join(' ')
 }
+

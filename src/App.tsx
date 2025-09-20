@@ -14,9 +14,12 @@ import { Accounts } from './components/finance/Accounts'
 import { FinancialGoals } from './components/finance/FinancialGoals'
 import { ExportData } from './components/finance/ExportData'
 import { Settings } from './components/settings/Settings'
+import { TrialExpiredModal } from './components/ui/TrialExpiredModal'
+import { useSubscription } from './hooks/useSubscription'
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuthContext()
+  const { isTrialExpired } = useSubscription()
   
   // Initialiser avec la dernière section visitée ou dashboard par défaut
   const getInitialSection = () => {
@@ -35,6 +38,7 @@ const AppContent: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [sectionParams, setSectionParams] = useState<any>({})
+  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false)
 
   // Sauvegarder la section active dans localStorage à chaque changement
   React.useEffect(() => {
@@ -62,6 +66,17 @@ const AppContent: React.FC = () => {
       }
     }
   }, [user]) // Seulement quand l'utilisateur change
+
+  // Vérifier l'expiration de l'essai
+  React.useEffect(() => {
+    if (user && isTrialExpired()) {
+      // Vérifier si l'utilisateur a déjà choisi de continuer en version gratuite
+      const hasChosenFree = localStorage.getItem('userChoseFreeVersion')
+      if (!hasChosenFree) {
+        setShowTrialExpiredModal(true)
+      }
+    }
+  }, [user, isTrialExpired])
 
   if (loading) {
     return (
@@ -140,6 +155,12 @@ const AppContent: React.FC = () => {
       <main className="flex-1 overflow-y-auto">
         {renderContent()}
       </main>
+      
+      {/* Modal d'expiration de l'essai */}
+      <TrialExpiredModal 
+        isOpen={showTrialExpiredModal}
+        onClose={() => setShowTrialExpiredModal(false)}
+      />
     </div>
   )
 }

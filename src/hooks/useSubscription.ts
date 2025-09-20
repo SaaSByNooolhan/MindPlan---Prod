@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, Subscription } from '../lib/supabase'
 import { useAuthContext } from '../contexts/AuthContext'
-import { redirectToCheckout, createCustomerPortalSession, STRIPE_PRICES } from '../lib/stripe'
+import { redirectToCheckout, redirectToCheckoutDirect, createCustomerPortalSession, STRIPE_PRICES } from '../lib/stripe'
 
 export const useSubscription = () => {
   const { user } = useAuthContext()
@@ -25,25 +25,91 @@ export const useSubscription = () => {
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
-        .in('status', ['active', 'trial'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error loading subscription:', error)
+        // Si pas d'abonnement trouvé, créer un abonnement gratuit par défaut
+        if (error.code === 'PGRST116' || error.message.includes('No rows found')) {
+          await createDefaultSubscription()
+        }
+        return
       }
 
-      setSubscription(data)
+      if (data && data.length > 0) {
+        setSubscription(data[0])
+      } else {
+        // Aucun abonnement trouvé, créer un abonnement gratuit par défaut
+        await createDefaultSubscription()
+      }
     } catch (error) {
       console.error('Error in loadSubscription:', error)
+      // En cas d'erreur, créer un abonnement par défaut
+      await createDefaultSubscription()
     } finally {
       setLoading(false)
     }
   }
 
+  const createDefaultSubscription = async () => {
+    if (!user) return
+
+    try {
+      // Vérifier si l'utilisateur veut un essai gratuit
+      const wantsFreeTrial = localStorage.getItem('wantsFreeTrial') === 'true'
+      
+      let subscriptionData
+      if (wantsFreeTrial) {
+        // Créer un essai gratuit de 7 jours
+        const trialEnd = new Date()
+        trialEnd.setDate(trialEnd.getDate() + 7)
+        
+        subscriptionData = {
+          user_id: user.id,
+          plan_type: 'premium',
+          status: 'trial',
+          trial_end: trialEnd.toISOString()
+        }
+        
+        // Nettoyer le flag
+        localStorage.removeItem('wantsFreeTrial')
+      } else {
+        // Créer un abonnement gratuit par défaut
+        subscriptionData = {
+          user_id: user.id,
+          plan_type: 'free',
+          status: 'active'
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .insert(subscriptionData)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating default subscription:', error)
+        // Si l'erreur est due à une contrainte unique, essayer de récupérer l'abonnement existant
+        if (error.code === '23505') {
+          await loadSubscription()
+        }
+      } else {
+        setSubscription(data)
+      }
+    } catch (error) {
+      console.error('Error in createDefaultSubscription:', error)
+    }
+  }
+
   const isPremium = () => {
     if (!subscription) return false
+    
+    // Vérifier si c'est un abonnement freemium
+    if (subscription.plan_type === 'free') {
+      return false
+    }
     
     // Vérifier si c'est un abonnement Premium actif
     if (subscription.plan_type === 'premium' && subscription.status === 'active') {
@@ -70,6 +136,7 @@ export const useSubscription = () => {
       }
     }
     
+    // Par défaut, considérer comme freemium
     return false
   }
 
@@ -189,13 +256,19 @@ export const useSubscription = () => {
     }
   }
 
-  const upgradeToPremium = async () => {
+  const upgradeToPremium = async (skipTrial: boolean = false) => {
     if (!user) return { error: 'User not authenticated' }
 
     try {
       const priceId = STRIPE_PRICES.premium_monthly.id
 
-      await redirectToCheckout(priceId, user.id, user.email || '')
+      if (skipTrial) {
+        // Paiement direct sans essai gratuit
+        await redirectToCheckoutDirect(priceId, user.id, user.email || '')
+      } else {
+        // Avec essai gratuit de 7 jours
+        await redirectToCheckout(priceId, user.id, user.email || '')
+      }
       return { error: null }
     } catch (error) {
       console.error('Error in upgradeToPremium:', error)

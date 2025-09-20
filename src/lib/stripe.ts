@@ -55,7 +55,7 @@ export const STRIPE_PRICES = {
   }
 }
 
-// Fonction pour créer une session de paiement
+// Fonction pour créer une session de paiement avec essai gratuit
 export const createCheckoutSession = async (
   priceId: string,
   userId: string,
@@ -64,7 +64,7 @@ export const createCheckoutSession = async (
   cancelUrl: string
 ) => {
   try {
-    // Mode production : créer une vraie session Stripe
+    // Mode production : créer une vraie session Stripe avec essai gratuit
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
       headers: {
@@ -76,6 +76,7 @@ export const createCheckoutSession = async (
         userEmail,
         successUrl,
         cancelUrl,
+        withTrial: true,
       }),
     })
 
@@ -92,7 +93,45 @@ export const createCheckoutSession = async (
   }
 }
 
-// Fonction pour rediriger vers Stripe Checkout
+// Fonction pour créer une session de paiement sans essai gratuit (paiement direct)
+export const createCheckoutSessionDirect = async (
+  priceId: string,
+  userId: string,
+  userEmail: string,
+  successUrl: string,
+  cancelUrl: string
+) => {
+  try {
+    // Mode production : créer une vraie session Stripe sans essai gratuit
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        priceId,
+        userId,
+        userEmail,
+        successUrl,
+        cancelUrl,
+        withTrial: false,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || 'Failed to create checkout session')
+    }
+
+    const { sessionId } = await response.json()
+    return sessionId
+  } catch (error) {
+    console.error('Erreur createCheckoutSessionDirect:', error)
+    throw error
+  }
+}
+
+// Fonction pour rediriger vers Stripe Checkout avec essai gratuit
 export const redirectToCheckout = async (
   priceId: string,
   userId: string,
@@ -105,7 +144,7 @@ export const redirectToCheckout = async (
       throw new Error('Stripe not available')
     }
 
-    // Mode production : redirection vers Stripe Checkout
+    // Mode production : redirection vers Stripe Checkout avec essai gratuit
     const successUrl = `${window.location.origin}/dashboard?payment=success`
     const cancelUrl = `${window.location.origin}/dashboard?payment=cancelled`
 
@@ -124,6 +163,42 @@ export const redirectToCheckout = async (
     }
   } catch (error) {
     console.error('Erreur redirectToCheckout:', error)
+    throw error
+  }
+}
+
+// Fonction pour rediriger vers Stripe Checkout sans essai gratuit (paiement direct)
+export const redirectToCheckoutDirect = async (
+  priceId: string,
+  userId: string,
+  userEmail: string
+) => {
+  try {
+    const stripe = await getStripe()
+    if (!stripe) {
+      console.error('Stripe not initialized')
+      throw new Error('Stripe not available')
+    }
+
+    // Mode production : redirection vers Stripe Checkout sans essai
+    const successUrl = `${window.location.origin}/dashboard?payment=success`
+    const cancelUrl = `${window.location.origin}/dashboard?payment=cancelled`
+
+    const sessionId = await createCheckoutSessionDirect(
+      priceId,
+      userId,
+      userEmail,
+      successUrl,
+      cancelUrl
+    )
+
+    const { error } = await stripe.redirectToCheckout({ sessionId })
+
+    if (error) {
+      throw error
+    }
+  } catch (error) {
+    console.error('Erreur redirectToCheckoutDirect:', error)
     throw error
   }
 }

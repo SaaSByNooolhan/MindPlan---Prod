@@ -96,10 +96,19 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
       return
     }
 
-    // Limitation Freemium : 5 transactions maximum
-    if (!isPremium() && transactions.length >= 5) {
-      alert('Limite Freemium atteinte ! Vous ne pouvez créer que 5 transactions maximum. Passez Premium pour des transactions illimitées.')
-      return
+    // Limitation Freemium : 10 transactions par mois maximum
+    if (!isPremium()) {
+      const currentMonth = new Date().getMonth()
+      const currentYear = new Date().getFullYear()
+      const monthlyTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date)
+        return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear
+      })
+      
+      if (monthlyTransactions.length >= 10) {
+        alert('Limite Freemium atteinte ! Vous ne pouvez créer que 10 transactions par mois maximum. Passez Premium pour des transactions illimitées.')
+        return
+      }
     }
     
     if (!newTransaction.category) {
@@ -259,13 +268,44 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              Basé sur toutes vos transactions
-            </p>
+            {!isPremium() && (
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                {(() => {
+                  const currentMonth = new Date().getMonth()
+                  const currentYear = new Date().getFullYear()
+                  const monthlyTransactions = transactions.filter(t => {
+                    const transactionDate = new Date(t.date)
+                    return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear
+                  })
+                  return `${monthlyTransactions.length}/10 ce mois`
+                })()}
+              </p>
+            )}
+            {isPremium() && (
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                Basé sur toutes vos transactions
+              </p>
+            )}
           </div>
         </div>
       </Card>
 
+      {/* Message d'information freemium */}
+      {!isPremium() && (
+        <Card className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-800">
+          <div className="text-center p-4">
+            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+              📊 Version Gratuite - MindPlan
+            </h3>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+              Vous utilisez la version gratuite avec 10 transactions par mois, graphiques simples et export CSV.
+            </p>
+            <div className="text-xs text-blue-600 dark:text-blue-400">
+              💡 Passez Premium pour des transactions illimitées, analytics avancées et exports PDF
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Recurring Transactions Section */}
       {showSubscriptions && (

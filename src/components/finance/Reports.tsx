@@ -1,929 +1,909 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../ui/Card'
-import { PremiumGuard } from '../ui/PremiumGuard'
 import { Button } from '../ui/Button'
-import { 
-  Calendar, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign,
-  BarChart3,
-  Target,
-  Settings,
-  FileText
-} from 'lucide-react'
+import { useSubscription } from '../../hooks/useSubscription'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { supabase, Transaction, Budget } from '../../lib/supabase'
-import { format, startOfMonth, endOfMonth, subMonths, parseISO, eachMonthOfInterval } from 'date-fns'
+import { supabase, Transaction } from '../../lib/supabase'
+import { BarChart3, Calendar, TrendingUp, DollarSign, PieChart, BarChart } from 'lucide-react'
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-interface ReportData {
-  period: string
-  // 1. Résumé global
-  totalIncome: number
-  totalExpenses: number
-  netBalance: number
-  savingsRate: number
-  
-  // 2. Revenus détaillés
-  incomeBreakdown: {
-    salary: number
-    freelance: number
-    rental: number
-    dividends: number
-    other: number
-  }
-  
-  // 3. Dépenses détaillées
-  expenseBreakdown: {
-    fixed: number
-    variable: number
-    exceptional: number
-  }
-  topCategories: Array<{ category: string; amount: number; percentage: number }>
-  
-  // 4. Épargne et investissements
-  savings: {
-    total: number
-    accounts: number
-    investments: number
-    realEstate: number
-  }
-  
-  // 5. Dettes et engagements
-  debts: {
-    total: number
-    mortgage: number
-    consumer: number
-    personal: number
-  }
-  
-  // 6. Analyse et indicateurs
-  indicators: {
-    savingsRate: number
-    debtRatio: number
-    expenseRatio: number
-  }
-  
-  // 7. Perspectives
-  insights: string[]
-  recommendations: string[]
-  goals: string[]
-}
-
-interface ReportTemplate {
-  id: string
-  name: string
-  description: string
-  icon: React.ReactNode
-  period: 'monthly' | 'quarterly' | 'yearly' | 'custom'
-  sections: string[]
-}
-
 export const Reports: React.FC = () => {
+  const { isPremium } = useSubscription()
   const { user } = useAuthContext()
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [budgets, setBudgets] = useState<Budget[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('monthly')
-  const [selectedPeriod, setSelectedPeriod] = useState<'3m' | '6m' | '12m'>('6m')
-  const [reportData, setReportData] = useState<ReportData | null>(null)
-  const [showPreview, setShowPreview] = useState(false)
-  const [customDateRange, setCustomDateRange] = useState({
-    start: format(subMonths(new Date(), 6), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
-  })
+  const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'year'>('month')
+  const [selectedMonth, setSelectedMonth] = useState(new Date())
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [generatedReports, setGeneratedReports] = useState<any[]>([])
 
-  const reportTemplates: ReportTemplate[] = [
-    {
-      id: 'monthly',
-      name: 'Rapport Mensuel',
-      description: 'Bilan financier complet du mois avec analyse détaillée',
-      icon: <Calendar className="w-6 h-6" />,
-      period: 'monthly',
-      sections: ['Résumé global', 'Revenus', 'Dépenses', 'Épargne', 'Analyse']
-    },
-    {
-      id: 'quarterly',
-      name: 'Rapport Trimestriel',
-      description: 'Bilan financier sur 3 mois avec tendances et objectifs',
-      icon: <BarChart3 className="w-6 h-6" />,
-      period: 'quarterly',
-      sections: ['Résumé global', 'Revenus', 'Dépenses', 'Investissements', 'Dettes', 'Analyse']
-    },
-    {
-      id: 'yearly',
-      name: 'Rapport Annuel',
-      description: 'Bilan financier complet de l\'année avec perspectives',
-      icon: <TrendingUp className="w-6 h-6" />,
-      period: 'yearly',
-      sections: ['Résumé global', 'Revenus', 'Dépenses', 'Épargne', 'Investissements', 'Dettes', 'Analyse', 'Perspectives']
-    },
-    {
-      id: 'custom',
-      name: 'Rapport Personnalisé',
-      description: 'Rapport financier sur la période de votre choix',
-      icon: <Settings className="w-6 h-6" />,
-      period: 'custom',
-      sections: ['Résumé global', 'Revenus', 'Dépenses', 'Épargne', 'Analyse', 'Objectifs']
-    }
-  ]
-
+  // Charger les transactions
   useEffect(() => {
-    if (user) {
-      loadData()
+    if (user && isPremium()) {
+      loadTransactions()
     }
-  }, [user])
+  }, [user, isPremium])
 
-  // Auto-générer et afficher le rapport dès que les données sont disponibles
-  useEffect(() => {
-    if (transactions.length > 0 || budgets.length > 0) {
-      setShowPreview(true) // Afficher automatiquement le rapport
-      generateReport()
-    }
-  }, [selectedTemplate, selectedPeriod, transactions, budgets, customDateRange])
-
-
-  const loadData = async () => {
+  const loadTransactions = async () => {
     if (!user) return
 
-    setLoading(true)
     try {
-      // Charger les transactions
-      const { data: transactionsData, error: transactionsError } = await supabase
+      const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', user.id)
         .order('date', { ascending: false })
 
-      if (transactionsError) {
-        console.error('Error loading transactions:', transactionsError)
-      } else {
-        setTransactions(transactionsData || [])
+      if (error) {
+        console.error('Error loading transactions:', error)
+        return
       }
 
-      // Charger les budgets
-      const { data: budgetsData, error: budgetsError } = await supabase
-        .from('budgets')
-        .select('*')
-        .eq('user_id', user.id)
-
-      if (budgetsError) {
-        console.error('Error loading budgets:', budgetsError)
-        setBudgets([])
-      } else {
-        setBudgets(budgetsData || [])
-      }
+      setTransactions(data || [])
     } catch (error) {
-      console.error('Error in loadData:', error)
+      console.error('Error in loadTransactions:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const generateReport = () => {
-    const template = reportTemplates.find(t => t.id === selectedTemplate)
-    if (!template) return
-
+  // Calculer les statistiques pour la période sélectionnée
+  const getPeriodStats = () => {
+    const now = new Date()
     let startDate: Date
     let endDate: Date
-    let periodLabel: string
 
-    if (template.period === 'custom') {
-      startDate = new Date(customDateRange.start)
-      endDate = new Date(customDateRange.end)
-      periodLabel = `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`
+    if (selectedPeriod === 'month') {
+      startDate = startOfMonth(selectedMonth)
+      endDate = endOfMonth(selectedMonth)
     } else {
-      const months = selectedPeriod === '3m' ? 3 : selectedPeriod === '6m' ? 6 : 12
-      startDate = startOfMonth(subMonths(new Date(), months - 1))
-      endDate = endOfMonth(new Date())
-      periodLabel = `${months} derniers mois`
+      startDate = startOfYear(new Date(selectedYear, 0, 1))
+      endDate = endOfYear(new Date(selectedYear, 0, 1))
     }
 
-    // Filtrer les transactions par période
     const periodTransactions = transactions.filter(t => {
-      try {
-        const transactionDate = parseISO(t.date)
-        return transactionDate >= startDate && transactionDate <= endDate
-      } catch (error) {
-        return false
-      }
+      const transactionDate = new Date(t.date)
+      return transactionDate >= startDate && transactionDate <= endDate
     })
 
-    // Calculer les statistiques
-    const totalIncome = periodTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
-    const totalExpenses = periodTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
-    const netBalance = totalIncome - totalExpenses
-    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0
+    const income = periodTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0)
 
-    // Top catégories
-    const categoryBreakdown = periodTransactions
+    const expenses = periodTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    const balance = income - expenses
+
+    // Top catégories de dépenses
+    const categoryStats = periodTransactions
       .filter(t => t.type === 'expense')
       .reduce((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount
         return acc
       }, {} as Record<string, number>)
 
-    const topCategories = Object.entries(categoryBreakdown)
+    const topCategories = Object.entries(categoryStats)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 5)
-      .map(([category, amount]) => ({
-        category,
-        amount,
-        percentage: (amount / totalExpenses) * 100
-      }))
 
-    // Tendances mensuelles
-    const monthlyTrends = eachMonthOfInterval({
-      start: startDate,
-      end: endDate
-    }).map(month => {
-      const monthStart = startOfMonth(month)
-      const monthEnd = endOfMonth(month)
-      
-      const monthTransactions = periodTransactions.filter(t => {
-        try {
-          const transactionDate = parseISO(t.date)
-          return transactionDate >= monthStart && transactionDate <= monthEnd
-        } catch (error) {
-          return false
-        }
-      })
-
-      const income = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
-      const expenses = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
-
-      return {
-        month: format(month, 'MMM yyyy', { locale: fr }),
-        income,
-        expenses,
-        balance: income - expenses
-      }
-    })
-
-    // Performance des budgets
-    const budgetPerformance = budgets.map(budget => {
-      const spent = periodTransactions
-        .filter(t => t.category === budget.category && t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0)
-      
-      return {
-        category: budget.category,
-        budget: budget.amount,
-        spent,
-        remaining: budget.amount - spent,
-        percentage: (spent / budget.amount) * 100
-      }
-    })
-
-    // 2. Revenus détaillés
-    const incomeBreakdown = {
-      salary: periodTransactions.filter(t => t.type === 'income' && t.category === 'Salaire').reduce((sum, t) => sum + t.amount, 0),
-      freelance: periodTransactions.filter(t => t.type === 'income' && t.category === 'Freelance').reduce((sum, t) => sum + t.amount, 0),
-      rental: periodTransactions.filter(t => t.type === 'income' && t.category === 'Location').reduce((sum, t) => sum + t.amount, 0),
-      dividends: periodTransactions.filter(t => t.type === 'income' && t.category === 'Dividendes').reduce((sum, t) => sum + t.amount, 0),
-      other: periodTransactions.filter(t => t.type === 'income' && !['Salaire', 'Freelance', 'Location', 'Dividendes'].includes(t.category)).reduce((sum, t) => sum + t.amount, 0)
-    }
-
-    // 3. Dépenses détaillées
-    const fixedCategories = ['Loyer', 'Assurance', 'Abonnement', 'Impôts', 'Scolarité']
-    const variableCategories = ['Alimentation', 'Transport', 'Loisirs', 'Habillement', 'Santé']
-    const exceptionalCategories = ['Voyage', 'Réparation', 'Gros achat']
-
-    const expenseBreakdown = {
-      fixed: periodTransactions.filter(t => t.type === 'expense' && fixedCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0),
-      variable: periodTransactions.filter(t => t.type === 'expense' && variableCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0),
-      exceptional: periodTransactions.filter(t => t.type === 'expense' && exceptionalCategories.includes(t.category)).reduce((sum, t) => sum + t.amount, 0)
-    }
-
-    // 4. Épargne et investissements (simulation basée sur les transactions)
-    const savings = {
-      total: Math.max(0, netBalance * 0.3), // Estimation 30% du solde
-      accounts: Math.max(0, netBalance * 0.2),
-      investments: Math.max(0, netBalance * 0.1),
-      realEstate: 0 // À compléter avec des données réelles
-    }
-
-    // 5. Dettes et engagements (simulation)
-    const debts = {
-      total: Math.max(0, totalExpenses * 0.4), // Estimation 40% des dépenses
-      mortgage: Math.max(0, totalExpenses * 0.25),
-      consumer: Math.max(0, totalExpenses * 0.1),
-      personal: Math.max(0, totalExpenses * 0.05)
-    }
-
-    // 6. Indicateurs clés
-    const indicators = {
-      savingsRate: savingsRate,
-      debtRatio: totalIncome > 0 ? (debts.total / totalIncome) * 100 : 0,
-      expenseRatio: totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0
-    }
-
-    // 7. Générer des insights et recommandations
-    const insights = generateInsights(totalIncome, totalExpenses, netBalance, savingsRate, topCategories, indicators)
-    const recommendations = generateRecommendations(netBalance, savingsRate, indicators, debts)
-    const goals = generateGoals(netBalance, savingsRate, indicators)
-
-    // Forcer la mise à jour avec un timestamp
-    const reportWithTimestamp = {
-      period: periodLabel,
-      totalIncome,
-      totalExpenses,
-      netBalance,
-      savingsRate,
-      incomeBreakdown,
-      expenseBreakdown,
+    return {
+      income,
+      expenses,
+      balance,
+      transactionCount: periodTransactions.length,
       topCategories,
-      savings,
-      debts,
-      indicators,
-      insights,
-      recommendations,
-      goals,
-      generatedAt: new Date().toISOString() // Timestamp pour forcer le re-rendu
+      periodTransactions
     }
-    
-    setReportData(reportWithTimestamp)
   }
 
-  const generateInsights = (income: number, expenses: number, balance: number, savingsRate: number, topCategories: any[], indicators: any) => {
-    const insights: string[] = []
+  const generateMonthlyReport = () => {
+    const stats = getPeriodStats()
+    const previousMonth = new Date(selectedMonth)
+    previousMonth.setMonth(previousMonth.getMonth() - 1)
     
-    // Analyse du solde
-    if (balance > 0) {
-      insights.push(`✅ Excellent ! Votre solde est positif de ${formatCurrency(balance)}.`)
-    } else if (balance < 0) {
-      insights.push(`⚠️ Attention : Votre solde est négatif de ${formatCurrency(Math.abs(balance))}.`)
+    // Calculer les stats du mois précédent pour comparaison
+    const previousStats = getPreviousPeriodStats(previousMonth)
+    
+    const report = {
+      id: Date.now(),
+      type: 'monthly',
+      title: `Rapport Mensuel - ${format(selectedMonth, 'MMMM yyyy', { locale: fr })}`,
+      date: new Date(),
+      stats: {
+        ...stats,
+        previousStats,
+        savingsRate: stats.income > 0 ? (stats.balance / stats.income) * 100 : 0,
+        expenseBreakdown: getExpenseBreakdown(stats.periodTransactions),
+        incomeBreakdown: getIncomeBreakdown(stats.periodTransactions),
+        topCategories: stats.topCategories,
+        recommendations: generateRecommendations(stats, previousStats)
+      },
+      period: selectedPeriod,
+      periodDate: selectedPeriod === 'month' ? selectedMonth : new Date(selectedYear, 0, 1)
     }
+    
+    setGeneratedReports(prev => [report, ...prev])
+    return report
+  }
+
+  const generateYearlyReport = () => {
+    const stats = getPeriodStats()
+    const previousYear = selectedYear - 1
+    
+    // Calculer les stats de l'année précédente pour comparaison
+    const previousStats = getPreviousYearStats(previousYear)
+    
+    const report = {
+      id: Date.now(),
+      type: 'yearly',
+      title: `Rapport Annuel - ${selectedYear}`,
+      date: new Date(),
+      stats: {
+        ...stats,
+        previousStats,
+        savingsRate: stats.income > 0 ? (stats.balance / stats.income) * 100 : 0,
+        expenseBreakdown: getExpenseBreakdown(stats.periodTransactions),
+        incomeBreakdown: getIncomeBreakdown(stats.periodTransactions),
+        topCategories: stats.topCategories,
+        recommendations: generateRecommendations(stats, previousStats),
+        monthlyBreakdown: getMonthlyBreakdown(selectedYear)
+      },
+      period: selectedPeriod,
+      periodDate: new Date(selectedYear, 0, 1)
+    }
+    
+    setGeneratedReports(prev => [report, ...prev])
+    return report
+  }
+
+  const generateBudgetReport = () => {
+    const stats = getPeriodStats()
+    const previousMonth = new Date(selectedMonth)
+    previousMonth.setMonth(previousMonth.getMonth() - 1)
+    
+    const previousStats = getPreviousPeriodStats(previousMonth)
+    
+    const report = {
+      id: Date.now(),
+      type: 'budget',
+      title: `Rapport de Budget - ${format(selectedMonth, 'MMMM yyyy', { locale: fr })}`,
+      date: new Date(),
+      stats: {
+        ...stats,
+        previousStats,
+        savingsRate: stats.income > 0 ? (stats.balance / stats.income) * 100 : 0,
+        expenseBreakdown: getExpenseBreakdown(stats.periodTransactions),
+        incomeBreakdown: getIncomeBreakdown(stats.periodTransactions),
+        topCategories: stats.topCategories,
+        recommendations: generateBudgetRecommendations(stats, previousStats),
+        budgetAnalysis: analyzeBudgetPerformance(stats)
+      },
+      period: selectedPeriod,
+      periodDate: selectedMonth
+    }
+    
+    setGeneratedReports(prev => [report, ...prev])
+    return report
+  }
+
+
+  const deleteReport = (reportId: number) => {
+    setGeneratedReports(prev => prev.filter(r => r.id !== reportId))
+  }
+
+  // Fonctions d'analyse détaillée
+  const getPreviousPeriodStats = (previousDate: Date) => {
+    const startDate = startOfMonth(previousDate)
+    const endDate = endOfMonth(previousDate)
+
+    const periodTransactions = transactions.filter(t => {
+      const transactionDate = new Date(t.date)
+      return transactionDate >= startDate && transactionDate <= endDate
+    })
+
+    const income = periodTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    const expenses = periodTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    return {
+      income,
+      expenses,
+      balance: income - expenses,
+      transactionCount: periodTransactions.length
+    }
+  }
+
+  const getExpenseBreakdown = (periodTransactions: Transaction[]) => {
+    const expenses = periodTransactions.filter(t => t.type === 'expense')
+    
+    // Catégoriser les dépenses selon la structure demandée
+    const categories = {
+      fixes: ['Logement', 'Assurances', 'Abonnements', 'Impôts', 'Scolarité'],
+      variables: ['Alimentation', 'Transport', 'Loisirs', 'Habillement', 'Santé'],
+      exceptionnelles: ['Voyages', 'Réparations', 'Gros achats']
+    }
+
+    const breakdown = {
+      fixes: 0,
+      variables: 0,
+      exceptionnelles: 0,
+      autres: 0
+    }
+
+    expenses.forEach(expense => {
+      if (categories.fixes.includes(expense.category)) {
+        breakdown.fixes += expense.amount
+      } else if (categories.variables.includes(expense.category)) {
+        breakdown.variables += expense.amount
+      } else if (categories.exceptionnelles.includes(expense.category)) {
+        breakdown.exceptionnelles += expense.amount
+      } else {
+        breakdown.autres += expense.amount
+      }
+    })
+
+    return breakdown
+  }
+
+  const getIncomeBreakdown = (periodTransactions: Transaction[]) => {
+    const incomes = periodTransactions.filter(t => t.type === 'income')
+    
+    const breakdown = {
+      salaire: 0,
+      complementaires: 0,
+      exceptionnels: 0
+    }
+
+    incomes.forEach(income => {
+      if (income.category === 'Salaire' || income.category === 'Revenus professionnels') {
+        breakdown.salaire += income.amount
+      } else if (['Freelance', 'Location', 'Dividendes', 'Intérêts', 'Aides'].includes(income.category)) {
+        breakdown.complementaires += income.amount
+      } else {
+        breakdown.exceptionnels += income.amount
+      }
+    })
+
+    return breakdown
+  }
+
+  const generateRecommendations = (currentStats: any, previousStats: any) => {
+    const recommendations = []
 
     // Analyse du taux d'épargne
-    if (savingsRate > 20) {
-      insights.push(`💰 Taux d'épargne excellent : ${savingsRate.toFixed(1)}% (recommandé : 20%)`)
-    } else if (savingsRate > 10) {
-      insights.push(`📈 Taux d'épargne correct : ${savingsRate.toFixed(1)}% (objectif : 20%)`)
-    } else {
-      insights.push(`📉 Taux d'épargne faible : ${savingsRate.toFixed(1)}% (recommandé : 20%)`)
+    if (currentStats.income > 0) {
+      const savingsRate = (currentStats.balance / currentStats.income) * 100
+      if (savingsRate < 10) {
+        recommendations.push({
+          type: 'warning',
+          title: 'Taux d\'épargne faible',
+          message: `Votre taux d'épargne est de ${savingsRate.toFixed(1)}%. Il est recommandé d'épargner au moins 10-20% de vos revenus.`
+        })
+      } else if (savingsRate > 20) {
+        recommendations.push({
+          type: 'success',
+          title: 'Excellent taux d\'épargne',
+          message: `Félicitations ! Votre taux d'épargne de ${savingsRate.toFixed(1)}% est excellent.`
+        })
+      }
     }
 
-    // Analyse du ratio d'endettement
-    if (indicators.debtRatio > 33) {
-      insights.push(`🚨 Ratio d'endettement élevé : ${indicators.debtRatio.toFixed(1)}% (limite recommandée : 33%)`)
-    } else if (indicators.debtRatio > 0) {
-      insights.push(`📊 Ratio d'endettement acceptable : ${indicators.debtRatio.toFixed(1)}%`)
+    // Comparaison avec la période précédente
+    if (previousStats) {
+      const incomeChange = ((currentStats.income - previousStats.income) / previousStats.income) * 100
+      const expenseChange = ((currentStats.expenses - previousStats.expenses) / previousStats.expenses) * 100
+
+      if (expenseChange > 15) {
+        recommendations.push({
+          type: 'warning',
+          title: 'Augmentation des dépenses',
+          message: `Vos dépenses ont augmenté de ${expenseChange.toFixed(1)}% par rapport au mois précédent.`
+        })
+      }
+
+      if (incomeChange > 10) {
+        recommendations.push({
+          type: 'success',
+          title: 'Augmentation des revenus',
+          message: `Excellent ! Vos revenus ont augmenté de ${incomeChange.toFixed(1)}%.`
+        })
+      }
     }
 
-    // Analyse des dépenses
-    if (indicators.expenseRatio > 80) {
-      insights.push(`💸 Dépenses élevées : ${indicators.expenseRatio.toFixed(1)}% des revenus`)
-    } else if (indicators.expenseRatio < 60) {
-      insights.push(`💪 Bon contrôle des dépenses : ${indicators.expenseRatio.toFixed(1)}% des revenus`)
+    // Analyse des catégories de dépenses
+    const topCategory = currentStats.topCategories[0]
+    if (topCategory && topCategory[1] > currentStats.expenses * 0.4) {
+      recommendations.push({
+        type: 'info',
+        title: 'Concentration des dépenses',
+        message: `${topCategory[0]} représente ${((topCategory[1] / currentStats.expenses) * 100).toFixed(1)}% de vos dépenses.`
+      })
     }
-
-    // Catégorie principale
-    if (topCategories.length > 0) {
-      const topCategory = topCategories[0]
-      insights.push(`🎯 Catégorie principale : ${topCategory.category} (${topCategory.percentage.toFixed(1)}% des dépenses)`)
-    }
-
-    return insights
-  }
-
-  const generateRecommendations = (balance: number, savingsRate: number, indicators: any, debts: any) => {
-    const recommendations: string[] = []
-    
-    // Recommandations basées sur le solde
-    if (balance < 0) {
-      recommendations.push('🔧 Réduisez vos dépenses variables ou augmentez vos revenus pour équilibrer votre budget')
-    }
-
-    // Recommandations sur l'épargne
-    if (savingsRate < 10) {
-      recommendations.push('💡 Épargnez au moins 10% de vos revenus chaque mois (règle des 50/30/20)')
-    } else if (savingsRate < 20) {
-      recommendations.push('📈 Augmentez votre épargne pour atteindre 20% de vos revenus')
-    } else {
-      recommendations.push('🚀 Excellent ! Considérez des investissements à long terme (PEA, assurance-vie)')
-    }
-
-    // Recommandations sur l'endettement
-    if (indicators.debtRatio > 33) {
-      recommendations.push('⚠️ Réduisez vos dettes - le ratio d\'endettement ne devrait pas dépasser 33%')
-    } else if (indicators.debtRatio > 0) {
-      recommendations.push('📊 Maintenez votre niveau d\'endettement actuel')
-    }
-
-    // Recommandations sur les dépenses
-    if (indicators.expenseRatio > 80) {
-      recommendations.push('💸 Réduisez vos dépenses - elles représentent plus de 80% de vos revenus')
-    }
-
-    // Recommandations générales
-    recommendations.push('📋 Établissez un budget mensuel détaillé')
-    recommendations.push('🎯 Fixez-vous des objectifs financiers SMART (Spécifiques, Mesurables, Atteignables, Réalistes, Temporels)')
 
     return recommendations
   }
 
-  const generateGoals = (balance: number, savingsRate: number, indicators: any) => {
-    const goals: string[] = []
-    
-    // Objectifs basés sur la situation actuelle
-    if (savingsRate < 20) {
-      goals.push('🎯 Atteindre un taux d\'épargne de 20% dans les 6 prochains mois')
-    }
-    
-    if (indicators.debtRatio > 0) {
-      goals.push('💳 Réduire le ratio d\'endettement de 5% cette année')
-    }
-    
-    if (balance > 0) {
-      goals.push('💰 Maintenir un solde positif chaque mois')
-    } else {
-      goals.push('📈 Atteindre un solde positif dans les 3 prochains mois')
-    }
+  const getPreviousYearStats = (year: number) => {
+    const startDate = startOfYear(new Date(year, 0, 1))
+    const endDate = endOfYear(new Date(year, 0, 1))
 
-    // Objectifs généraux
-    goals.push('🏠 Constituer un apport pour un achat immobilier')
-    goals.push('👴 Préparer sa retraite avec des investissements long terme')
-    goals.push('🛡️ Constituer un fonds d\'urgence de 3-6 mois de dépenses')
+    const periodTransactions = transactions.filter(t => {
+      const transactionDate = new Date(t.date)
+      return transactionDate >= startDate && transactionDate <= endDate
+    })
 
-    return goals
+    const income = periodTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    const expenses = periodTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    return {
+      income,
+      expenses,
+      balance: income - expenses,
+      transactionCount: periodTransactions.length
+    }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount)
-  }
-
-  // Fonction d'export PDF supprimée - non nécessaire
-
-  // Fonction d'export Excel supprimée - non nécessaire
-
-  // Fonctions de programmation et partage supprimées - non nécessaires
-
-  // Fonction d'impression supprimée - non nécessaire
-  const _printReport = () => {
-    if (!reportData) return
-
-    // Create a print-friendly version
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      const template = reportTemplates.find(t => t.id === selectedTemplate)
+  const getMonthlyBreakdown = (year: number) => {
+    const monthlyData = []
+    
+    for (let month = 0; month < 12; month++) {
+      const startDate = startOfMonth(new Date(year, month, 1))
+      const endDate = endOfMonth(new Date(year, month, 1))
       
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Rapport Financier - ${template?.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
-            .summary { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px; }
-            .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; }
-            .summary-item { text-align: center; padding: 10px; background: white; border-radius: 5px; }
-            .summary-value { font-size: 20px; font-weight: bold; margin: 5px 0; }
-            .income { color: #10B981; }
-            .expense { color: #EF4444; }
-            .balance { color: #3B82F6; }
-            .savings { color: #8B5CF6; }
-            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            .section { margin: 25px 0; }
-            .insights, .recommendations { background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px; }
-            @media print { body { margin: 0; } }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Rapport Financier</h1>
-            <p><strong>${template?.name}</strong></p>
-            <p>Période : ${reportData.period}</p>
-            <p>Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm', { locale: fr })}</p>
-          </div>
+      const monthTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date)
+        return transactionDate >= startDate && transactionDate <= endDate
+      })
 
-          <div class="summary">
-            <h3>Vue d'ensemble</h3>
-            <div class="summary-grid">
-              <div class="summary-item">
-                <div class="summary-value income">${reportData.totalIncome.toFixed(2)} €</div>
-                <div><strong>Revenus</strong></div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-value expense">${reportData.totalExpenses.toFixed(2)} €</div>
-                <div><strong>Dépenses</strong></div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-value balance">${reportData.netBalance.toFixed(2)} €</div>
-                <div><strong>Solde Net</strong></div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-value savings">${reportData.savingsRate.toFixed(1)}%</div>
-                <div><strong>Taux d'épargne</strong></div>
-              </div>
-            </div>
-          </div>
+      const income = monthTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0)
 
-          <div class="section">
-            <h3>Top 5 des Catégories de Dépenses</h3>
-            <table>
-              <thead>
-                <tr><th>Rang</th><th>Catégorie</th><th>Montant</th><th>Pourcentage</th></tr>
-              </thead>
-              <tbody>
-                ${reportData.topCategories.map((category, index) => `
-                  <tr>
-                    <td><strong>${index + 1}</strong></td>
-                    <td>${category.category}</td>
-                    <td>${category.amount.toFixed(2)} €</td>
-                    <td>${category.percentage.toFixed(1)}%</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
+      const expenses = monthTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0)
 
-          ${reportData.budgetPerformance.length > 0 ? `
-            <div class="section">
-              <h3>Performance des Budgets</h3>
-              <table>
-                <thead>
-                  <tr><th>Catégorie</th><th>Budget</th><th>Dépensé</th><th>Restant</th><th>Utilisation</th></tr>
-                </thead>
-                <tbody>
-                  ${reportData.budgetPerformance.map(budget => `
-                    <tr>
-                      <td>${budget.category}</td>
-                      <td>${budget.budget.toFixed(2)} €</td>
-                      <td>${budget.spent.toFixed(2)} €</td>
-                      <td>${budget.remaining.toFixed(2)} €</td>
-                      <td>${budget.percentage.toFixed(1)}%</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          ` : ''}
+      monthlyData.push({
+        month: format(new Date(year, month, 1), 'MMM', { locale: fr }),
+        income,
+        expenses,
+        balance: income - expenses,
+        transactionCount: monthTransactions.length
+      })
+    }
 
-          <div class="insights">
-            <h4>💡 Insights</h4>
-            <ul>
-              ${reportData.insights.map(insight => `<li>${insight}</li>`).join('')}
-            </ul>
-          </div>
+    return monthlyData
+  }
 
-          <div class="recommendations">
-            <h4>🎯 Recommandations</h4>
-            <ul>
-              ${reportData.recommendations.map(recommendation => `<li>${recommendation}</li>`).join('')}
-            </ul>
-          </div>
+  const generateBudgetRecommendations = (currentStats: any, previousStats: any) => {
+    const recommendations = generateRecommendations(currentStats, previousStats)
+    
+    // Ajouter des recommandations spécifiques au budget
+    if (currentStats.expenseBreakdown) {
+      const fixedRatio = (currentStats.expenseBreakdown.fixes / currentStats.expenses) * 100
+      if (fixedRatio > 60) {
+        recommendations.push({
+          type: 'warning',
+          title: 'Dépenses fixes élevées',
+          message: `Vos dépenses fixes représentent ${fixedRatio.toFixed(1)}% de vos dépenses totales. Considérez réduire certains abonnements ou négocier vos contrats.`
+        })
+      }
 
-          <div style="margin-top: 30px; text-align: center; color: #666;">
-            <p><strong>Rapport généré par MindPlan</strong> - Gestionnaire Financier Personnel</p>
-          </div>
-        </body>
-        </html>
-      `)
-      
-      printWindow.document.close()
-      printWindow.focus()
-      printWindow.print()
+      const variableRatio = (currentStats.expenseBreakdown.variables / currentStats.expenses) * 100
+      if (variableRatio > 50) {
+        recommendations.push({
+          type: 'info',
+          title: 'Optimisation possible',
+          message: `Vos dépenses variables (${variableRatio.toFixed(1)}%) peuvent être optimisées. Suivez vos achats quotidiens pour identifier les économies possibles.`
+        })
+      }
+    }
+
+    return recommendations
+  }
+
+  const analyzeBudgetPerformance = (stats: any) => {
+    return {
+      totalBudget: stats.income, // En supposant que le budget = revenus
+      actualSpending: stats.expenses,
+      remainingBudget: stats.balance,
+      budgetUtilization: stats.income > 0 ? (stats.expenses / stats.income) * 100 : 0,
+      isOverBudget: stats.balance < 0,
+      overBudgetAmount: stats.balance < 0 ? Math.abs(stats.balance) : 0
     }
   }
 
-  // Pas d'écran de chargement bloquant - affichage immédiat
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Chargement des données...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Rapports Financiers
           </h1>
-            <div className="flex items-center space-x-2">
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Rapports détaillés et export de données
-              </p>
-              <span className="px-2 py-1 text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded-full font-medium">
-                Premium
-              </span>
-            </div>
-          </div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Générez des rapports détaillés de vos finances
+          </p>
         </div>
 
-
-        <PremiumGuard
-          featureName="Rapports Financiers"
-          description="Générez et exportez vos rapports financiers facilement."
-        >
-          {/* Configuration directe du rapport */}
-          <Card className="p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-              Configuration du Rapport Financier
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Période */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Période d'analyse
-                </label>
-                <div className="space-y-2">
-                  {[
-                    { value: '3m', label: '3 derniers mois', icon: '📅' },
-                    { value: '6m', label: '6 derniers mois', icon: '📊' },
-                    { value: '12m', label: '12 derniers mois', icon: '📈' }
-                  ].map((period) => (
-                    <button
-                      key={period.value}
-                      onClick={() => setSelectedPeriod(period.value as any)}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-lg border-2 transition-all duration-200 ${
-                        selectedPeriod === period.value
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
-                      }`}
-                    >
-                      <span className="text-lg">{period.icon}</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{period.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Type de rapport */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Type de rapport
-                </label>
-                <div className="space-y-2">
-                  {[
-                    { value: 'monthly', label: 'Rapport Mensuel', icon: '📅', desc: 'Bilan du mois' },
-                    { value: 'quarterly', label: 'Rapport Trimestriel', icon: '📊', desc: 'Bilan sur 3 mois' },
-                    { value: 'yearly', label: 'Rapport Annuel', icon: '📈', desc: 'Bilan de l\'année' },
-                    { value: 'custom', label: 'Rapport Personnalisé', icon: '⚙️', desc: 'Période choisie' }
-                  ].map((template) => (
-                    <button
-                      key={template.value}
-                      onClick={() => setSelectedTemplate(template.value)}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-lg border-2 transition-all duration-200 ${
-                        selectedTemplate === template.value
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
-                      }`}
-                    >
-                      <span className="text-lg">{template.icon}</span>
-                      <div className="text-left">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">{template.label}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">{template.desc}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-          </div>
-
-            {/* Dates personnalisées */}
-            {selectedTemplate === 'custom' && (
-              <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Période personnalisée
-                </h4>
+        {isPremium() ? (
+          <div className="space-y-6">
+            {/* Sélecteur de période */}
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Configuration du Rapport
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Date de début</label>
-                  <input
-                    type="date"
-                    value={customDateRange.start}
-                    onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Type de période
+                  </label>
+                  <select
+                    value={selectedPeriod}
+                    onChange={(e) => setSelectedPeriod(e.target.value as 'month' | 'year')}
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="month">Mensuel</option>
+                    <option value="year">Annuel</option>
+                  </select>
                 </div>
-                <div>
-                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Date de fin</label>
-                  <input
-                    type="date"
-                    value={customDateRange.end}
-                    onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                
+                {selectedPeriod === 'month' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Mois
+                    </label>
+                    <input
+                      type="month"
+                      value={format(selectedMonth, 'yyyy-MM')}
+                      onChange={(e) => setSelectedMonth(new Date(e.target.value + '-01'))}
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Année
+                    </label>
+                    <input
+                      type="number"
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                      min="2020"
+                      max={new Date().getFullYear()}
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                )}
+                
               </div>
-              </div>
-            )}
+            </Card>
 
-          </Card>
-
-
-          {/* Aperçu simple du rapport */}
-          {showPreview && reportData && (
-            <div className="space-y-6">
-              {/* En-tête simple */}
-              <Card className="p-6 bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                    Rapport Financier
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-2">
-                    {reportTemplates.find(t => t.id === selectedTemplate)?.name}
+            {/* Rapports disponibles */}
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Générer un Rapport
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
+                  <div className="flex items-center mb-3">
+                    <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2" />
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      Rapport Mensuel
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Analyse complète de vos finances du mois
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
-                    Période : {reportData.period}
+                  <Button
+                    onClick={generateMonthlyReport}
+                    size="sm"
+                    className="w-full"
+                  >
+                    Générer
+                  </Button>
+                </div>
+                
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors">
+                  <div className="flex items-center mb-3">
+                    <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400 mr-2" />
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      Rapport Annuel
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Vue d'ensemble de votre année financière
                   </p>
-                  {reportData.generatedAt && (
-                    <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">
-                      Généré le {format(new Date(reportData.generatedAt), 'dd/MM/yyyy à HH:mm', { locale: fr })}
-                    </p>
-                  )}
+                  <Button
+                    onClick={generateYearlyReport}
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                  >
+                    Générer
+                  </Button>
                 </div>
-              </Card>
-
-              {/* 1. Résumé global */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  1. Résumé Global
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                    <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenus</p>
-                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(reportData.totalIncome)}
-                    </p>
+                
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
+                  <div className="flex items-center mb-3">
+                    <BarChart className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-2" />
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      Rapport de Budget
+                    </h3>
                   </div>
-
-                  <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Dépenses</p>
-                    <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                      {formatCurrency(reportData.totalExpenses)}
-                    </p>
-                  </div>
-
-                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Solde Net</p>
-                    <p className={`text-xl font-bold ${reportData.netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {formatCurrency(reportData.netBalance)}
-                    </p>
-                  </div>
-
-                  <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <Target className="w-6 h-6 text-purple-600 dark:text-purple-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux d'épargne</p>
-                    <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                      {reportData.savingsRate.toFixed(1)}%
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Analyse de vos budgets et objectifs
+                  </p>
+                  <Button
+                    onClick={generateBudgetReport}
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                  >
+                    Générer
+                  </Button>
                 </div>
-              </Card>
-
-              {/* 2. Revenus détaillés */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  2. Revenus Détaillés
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Salaire</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(reportData.incomeBreakdown.salary)}</p>
-                        </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Freelance</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(reportData.incomeBreakdown.freelance)}</p>
-                        </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Location</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(reportData.incomeBreakdown.rental)}</p>
-                    </div>
-                </div>
-              </Card>
-
-              {/* 3. Dépenses détaillées */}
-                <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  3. Dépenses Détaillées
-                  </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Fixes</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(reportData.expenseBreakdown.fixed)}</p>
-                        </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Variables</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(reportData.expenseBreakdown.variable)}</p>
-                        </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Exceptionnelles</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(reportData.expenseBreakdown.exceptional)}</p>
-                        </div>
-                      </div>
-              </Card>
-
-              {/* 6. Indicateurs clés */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  6. Indicateurs Clés
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Taux d'épargne</p>
-                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{reportData.indicators.savingsRate.toFixed(1)}%</p>
-                  </div>
-                  <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Ratio d'endettement</p>
-                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{reportData.indicators.debtRatio.toFixed(1)}%</p>
-                  </div>
-                  <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Ratio des dépenses</p>
-                    <p className="text-lg font-bold text-red-600 dark:text-red-400">{reportData.indicators.expenseRatio.toFixed(1)}%</p>
-                  </div>
-                  </div>
-                </Card>
-
-              {/* 7. Analyse et Perspectives */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    📊 Analyse
-                  </h3>
-                  <div className="space-y-3">
-                    {reportData.insights.map((insight, index) => (
-                      <div key={index} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p className="text-sm text-blue-800 dark:text-blue-200">{insight}</p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    💡 Recommandations
-                  </h3>
-                  <div className="space-y-3">
-                    {reportData.recommendations.slice(0, 4).map((recommendation, index) => (
-                      <div key={index} className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                        <p className="text-sm text-emerald-800 dark:text-emerald-200">{recommendation}</p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
               </div>
+            </Card>
 
-              {/* Objectifs financiers */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  🎯 Objectifs Financiers
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {reportData.goals.map((goal, index) => (
-                    <div key={index} className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                      <p className="text-sm text-purple-800 dark:text-purple-200">{goal}</p>
+            {/* Historique des rapports */}
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Rapports Générés
+              </h2>
+              {generatedReports.length === 0 ? (
+                <div className="text-center py-8">
+                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Aucun rapport généré pour le moment
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                    Générez votre premier rapport ci-dessus
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {generatedReports.map((report) => (
+                    <div key={report.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                            {report.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Généré le {format(report.date, 'dd/MM/yyyy à HH:mm')}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => deleteReport(report.id)}
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/20"
+                          >
+                            Supprimer
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Statistiques du rapport */}
+                      <div className="space-y-4">
+                        {/* 1. Résumé global */}
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                            📑 1. Résumé Global
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                              <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400 mx-auto mb-1" />
+                              <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                                {report.stats.income.toFixed(2)}€
+                              </p>
+                              <p className="text-xs text-green-600 dark:text-green-400">Revenus totaux</p>
+                            </div>
+                            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                              <TrendingUp className="w-5 h-5 text-red-600 dark:text-red-400 mx-auto mb-1" />
+                              <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                                {report.stats.expenses.toFixed(2)}€
+                              </p>
+                              <p className="text-xs text-red-600 dark:text-red-400">Dépenses totales</p>
+                            </div>
+                            <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                              <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto mb-1" />
+                              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                                {report.stats.balance.toFixed(2)}€
+                              </p>
+                              <p className="text-xs text-blue-600 dark:text-blue-400">Solde final</p>
+                            </div>
+                            <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                              <PieChart className="w-5 h-5 text-purple-600 dark:text-purple-400 mx-auto mb-1" />
+                              <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
+                                {report.stats.savingsRate?.toFixed(1) || 0}%
+                              </p>
+                              <p className="text-xs text-purple-600 dark:text-purple-400">Taux d'épargne</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Analyse des revenus */}
+                        {report.stats.incomeBreakdown && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                              💰 2. Analyse des Revenus
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-green-800 dark:text-green-200">Salaire principal</p>
+                                <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                                  {report.stats.incomeBreakdown.salaire.toFixed(2)}€
+                                </p>
+                              </div>
+                              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Revenus complémentaires</p>
+                                <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                                  {report.stats.incomeBreakdown.complementaires.toFixed(2)}€
+                                </p>
+                              </div>
+                              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-purple-800 dark:text-purple-200">Revenus exceptionnels</p>
+                                <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                                  {report.stats.incomeBreakdown.exceptionnels.toFixed(2)}€
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. Analyse des dépenses */}
+                        {report.stats.expenseBreakdown && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                              💸 3. Analyse des Dépenses
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Dépenses fixes</p>
+                                <p className="text-lg font-bold text-orange-700 dark:text-orange-300">
+                                  {report.stats.expenseBreakdown.fixes.toFixed(2)}€
+                                </p>
+                                <p className="text-xs text-orange-600 dark:text-orange-400">
+                                  {report.stats.expenses > 0 ? ((report.stats.expenseBreakdown.fixes / report.stats.expenses) * 100).toFixed(1) : 0}%
+                                </p>
+                              </div>
+                              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Dépenses variables</p>
+                                <p className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+                                  {report.stats.expenseBreakdown.variables.toFixed(2)}€
+                                </p>
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                                  {report.stats.expenses > 0 ? ((report.stats.expenseBreakdown.variables / report.stats.expenses) * 100).toFixed(1) : 0}%
+                                </p>
+                              </div>
+                              <div className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-pink-800 dark:text-pink-200">Dépenses exceptionnelles</p>
+                                <p className="text-lg font-bold text-pink-700 dark:text-pink-300">
+                                  {report.stats.expenseBreakdown.exceptionnelles.toFixed(2)}€
+                                </p>
+                                <p className="text-xs text-pink-600 dark:text-pink-400">
+                                  {report.stats.expenses > 0 ? ((report.stats.expenseBreakdown.exceptionnelles / report.stats.expenses) * 100).toFixed(1) : 0}%
+                                </p>
+                              </div>
+                              <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Autres</p>
+                                <p className="text-lg font-bold text-gray-700 dark:text-gray-300">
+                                  {report.stats.expenseBreakdown.autres.toFixed(2)}€
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  {report.stats.expenses > 0 ? ((report.stats.expenseBreakdown.autres / report.stats.expenses) * 100).toFixed(1) : 0}%
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 4. Top catégories */}
+                        {report.stats.topCategories && report.stats.topCategories.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                              📊 4. Top Catégories de Dépenses
+                            </h4>
+                            <div className="space-y-2">
+                              {report.stats.topCategories.slice(0, 5).map(([category, amount], index) => (
+                                <div key={category} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <div className="flex items-center">
+                                    <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-medium mr-3">
+                                      {index + 1}
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{category}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{amount.toFixed(2)}€</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {report.stats.expenses > 0 ? ((amount / report.stats.expenses) * 100).toFixed(1) : 0}%
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 5. Breakdown mensuel (pour rapports annuels) */}
+                        {report.stats.monthlyBreakdown && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                              📅 5. Évolution Mensuelle
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                              {report.stats.monthlyBreakdown.map((month, index) => (
+                                <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <h5 className="font-medium text-gray-900 dark:text-gray-100 text-sm mb-2">{month.month}</h5>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-green-600 dark:text-green-400">Revenus:</span>
+                                      <span className="text-green-700 dark:text-green-300 font-medium">{month.income.toFixed(0)}€</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-red-600 dark:text-red-400">Dépenses:</span>
+                                      <span className="text-red-700 dark:text-red-300 font-medium">{month.expenses.toFixed(0)}€</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-blue-600 dark:text-blue-400">Solde:</span>
+                                      <span className={`font-medium ${month.balance >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                                        {month.balance.toFixed(0)}€
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 6. Analyse de budget (pour rapports de budget) */}
+                        {report.stats.budgetAnalysis && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                              🎯 6. Analyse de Performance du Budget
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <h5 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Utilisation du Budget</h5>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-blue-700 dark:text-blue-300">Budget total:</span>
+                                    <span className="font-medium text-blue-800 dark:text-blue-200">{report.stats.budgetAnalysis.totalBudget.toFixed(2)}€</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-blue-700 dark:text-blue-300">Dépenses réelles:</span>
+                                    <span className="font-medium text-blue-800 dark:text-blue-200">{report.stats.budgetAnalysis.actualSpending.toFixed(2)}€</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm text-blue-700 dark:text-blue-300">Taux d'utilisation:</span>
+                                    <span className="font-medium text-blue-800 dark:text-blue-200">{report.stats.budgetAnalysis.budgetUtilization.toFixed(1)}%</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className={`p-4 rounded-lg ${report.stats.budgetAnalysis.isOverBudget ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
+                                <h5 className={`font-medium mb-2 ${report.stats.budgetAnalysis.isOverBudget ? 'text-red-800 dark:text-red-200' : 'text-green-800 dark:text-green-200'}`}>
+                                  {report.stats.budgetAnalysis.isOverBudget ? 'Dépassement de Budget' : 'Budget Respecté'}
+                                </h5>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between">
+                                    <span className={`text-sm ${report.stats.budgetAnalysis.isOverBudget ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
+                                      {report.stats.budgetAnalysis.isOverBudget ? 'Dépassement:' : 'Reste à dépenser:'}
+                                    </span>
+                                    <span className={`font-medium ${report.stats.budgetAnalysis.isOverBudget ? 'text-red-800 dark:text-red-200' : 'text-green-800 dark:text-green-200'}`}>
+                                      {report.stats.budgetAnalysis.isOverBudget ? 
+                                        `+${report.stats.budgetAnalysis.overBudgetAmount.toFixed(2)}€` : 
+                                        `${report.stats.budgetAnalysis.remainingBudget.toFixed(2)}€`
+                                      }
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 7. Recommandations */}
+                        {report.stats.recommendations && report.stats.recommendations.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                              💡 {report.stats.monthlyBreakdown ? '6' : report.stats.budgetAnalysis ? '7' : '5'}. Recommandations et Perspectives
+                            </h4>
+                            <div className="space-y-3">
+                              {report.stats.recommendations.map((rec, index) => (
+                                <div key={index} className={`p-3 rounded-lg border-l-4 ${
+                                  rec.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-green-400' :
+                                  rec.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-400' :
+                                  'bg-blue-50 dark:bg-blue-900/20 border-blue-400'
+                                }`}>
+                                  <h5 className={`font-medium ${
+                                    rec.type === 'success' ? 'text-green-800 dark:text-green-200' :
+                                    rec.type === 'warning' ? 'text-yellow-800 dark:text-yellow-200' :
+                                    'text-blue-800 dark:text-blue-200'
+                                  }`}>
+                                    {rec.title}
+                                  </h5>
+                                  <p className={`text-sm ${
+                                    rec.type === 'success' ? 'text-green-700 dark:text-green-300' :
+                                    rec.type === 'warning' ? 'text-yellow-700 dark:text-yellow-300' :
+                                    'text-blue-700 dark:text-blue-300'
+                                  }`}>
+                                    {rec.message}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </Card>
-
-
-
-            </div>
-          )}
-
-          {!showPreview && (
-            <Card className="p-8 text-center">
-              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Configuration du rapport financier
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                Le rapport se génère automatiquement dès que vous modifiez la configuration. Ajustez la période et le type de rapport ci-dessus pour voir votre analyse en temps réel.
-              </p>
-              <div className="flex flex-wrap justify-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-                <span className="flex items-center">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
-                  Résumé global
-                </span>
-                <span className="flex items-center">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                  Revenus détaillés
-                </span>
-                <span className="flex items-center">
-                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                  Dépenses analysées
-                </span>
-                <span className="flex items-center">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                  Objectifs personnalisés
-                </span>
+              )}
+            </Card>
+          </div>
+        ) : (
+          // Version freemium - rapports limités
+          <div className="space-y-6">
+            <Card className="p-6">
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Rapports Financiers
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                  Créez des rapports personnalisés avec des analyses détaillées, des graphiques avancés et des insights financiers.
+                </p>
+                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">
+                    🔒 Fonctionnalité Premium
+                  </h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                    Les rapports détaillés sont disponibles uniquement pour les utilisateurs Premium.
+                  </p>
+                  <ul className="text-sm text-blue-600 dark:text-blue-400 text-left space-y-1 mb-4">
+                    <li>• Rapports mensuels et annuels</li>
+                    <li>• Analyses détaillées par catégorie</li>
+                    <li>• Graphiques avancés et interactifs</li>
+                    <li>• Export PDF professionnel</li>
+                  </ul>
+                  <p className="text-xs text-blue-500 dark:text-blue-400">
+                    💡 Version Gratuite : Utilisez l'export CSV dans la section Export pour vos données
+                  </p>
+                </div>
               </div>
             </Card>
-          )}
-        </PremiumGuard>
+          </div>
+        )}
       </div>
     </div>
   )

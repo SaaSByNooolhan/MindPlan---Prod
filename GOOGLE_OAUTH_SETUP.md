@@ -56,3 +56,4 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - La redirection se fait vers `/dashboard` après authentification
 - Le thème est cohérent avec le reste de l'application MindPlan
 
+

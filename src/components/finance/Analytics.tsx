@@ -24,6 +24,7 @@ import { fr } from 'date-fns/locale'
 import { useSubscription } from '../../hooks/useSubscription'
 import { LineChart } from './LineChart'
 import { PieChart as CustomPieChart } from './PieChart'
+import { BasicCharts } from './BasicCharts'
 
 export const Analytics: React.FC = () => {
   const { user } = useAuthContext()
@@ -184,19 +185,19 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
         
-        <PremiumGuard 
-          featureName="Analytics Financières"
-          description="Analysez vos finances avec des graphiques avancés, des tendances détaillées et des insights personnalisés."
-        >
-          {loading ? (
-            <div className="space-y-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
+        {loading ? (
+          <div className="space-y-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+              </div>
+            ))}
+          </div>
+        ) : isPremium() ? (
+          <PremiumGuard 
+            featureName="Analytics Financières Avancées"
+            description="Analysez vos finances avec des graphiques avancés, des tendances détaillées et des insights personnalisés."
+          >
             <div className="space-y-8">
               {/* Statistiques principales */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -692,8 +693,11 @@ export const Analytics: React.FC = () => {
                 />
               </Card>
             </div>
-          )}
-        </PremiumGuard>
+          </PremiumGuard>
+        ) : (
+          // Version freemium - graphiques simples
+          <BasicCharts transactions={transactions} />
+        )}
       </div>
     </div>
   )
