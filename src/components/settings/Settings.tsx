@@ -22,7 +22,7 @@ export const Settings: React.FC = () => {
     try {
       await signOut()
     } catch (error) {
-      console.error('Error signing out:', error)
+
     }
   }
 
@@ -37,6 +37,7 @@ export const Settings: React.FC = () => {
         <div className="mb-8">
           <SubscriptionManager />
         </div>
+
 
         {/* Section préférences */}
         <div className="mb-8">

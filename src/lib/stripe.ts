@@ -5,12 +5,10 @@ const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_K
 
 // Mode développement : utiliser une clé de test par défaut si non définie
 if (!stripePublishableKey) {
-  console.warn('VITE_STRIPE_PUBLISHABLE_KEY is not defined. Using test key.')
   // Clé de test Stripe publique (sécurisée pour le frontend)
   const testKey = 'pk_test_51234567890abcdef'
   if (testKey) {
     // En mode développement, on peut continuer sans Stripe
-    console.log('Stripe non configuré - mode développement')
   }
 }
 
@@ -44,7 +42,7 @@ export interface StripePrice {
 // Configuration des prix Stripe - Mensuel uniquement
 export const STRIPE_PRICES = {
   premium_monthly: {
-    id: 'price_1S5EWfQYDIbMKdHDvz4q1JhS', // ✅ Votre vrai price_id mensuel
+    id: 'price_1S5EWfQYDIbMKdHDvz4q1JhS', // Votre vrai price_id mensuel
     amount: 999, // 9.99€ en centimes
     currency: 'eur',
     interval: 'month' as const,
@@ -88,7 +86,6 @@ export const createCheckoutSession = async (
     const { sessionId } = await response.json()
     return sessionId
   } catch (error) {
-    console.error('Erreur createCheckoutSession:', error)
     throw error
   }
 }
@@ -126,7 +123,6 @@ export const createCheckoutSessionDirect = async (
     const { sessionId } = await response.json()
     return sessionId
   } catch (error) {
-    console.error('Erreur createCheckoutSessionDirect:', error)
     throw error
   }
 }
@@ -140,7 +136,6 @@ export const redirectToCheckout = async (
   try {
     const stripe = await getStripe()
     if (!stripe) {
-      console.error('Stripe not initialized')
       throw new Error('Stripe not available')
     }
 
@@ -162,7 +157,6 @@ export const redirectToCheckout = async (
       throw error
     }
   } catch (error) {
-    console.error('Erreur redirectToCheckout:', error)
     throw error
   }
 }
@@ -176,7 +170,6 @@ export const redirectToCheckoutDirect = async (
   try {
     const stripe = await getStripe()
     if (!stripe) {
-      console.error('Stripe not initialized')
       throw new Error('Stripe not available')
     }
 
@@ -198,7 +191,6 @@ export const redirectToCheckoutDirect = async (
       throw error
     }
   } catch (error) {
-    console.error('Erreur redirectToCheckoutDirect:', error)
     throw error
   }
 }
@@ -224,7 +216,6 @@ export const createCustomerPortalSession = async (userId: string) => {
     const { url } = await response.json()
     return url
   } catch (error) {
-    console.error('Erreur createCustomerPortalSession:', error)
     throw error
   }
 }

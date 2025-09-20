@@ -343,7 +343,7 @@ export const AdvancedStats: React.FC<AdvancedStatsProps> = ({ transactions }) =>
           </p>
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
             <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
-              🔒 Fonctionnalité Premium
+              Fonctionnalité Premium
             </p>
             <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
               Passez Premium pour débloquer les analytics avancées

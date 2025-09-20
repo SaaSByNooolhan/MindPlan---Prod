@@ -4,12 +4,12 @@ import { Button } from '../ui/Button'
 import { useSubscription } from '../../hooks/useSubscription'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { supabase, Transaction } from '../../lib/supabase'
-import { BarChart3, Calendar, TrendingUp, DollarSign, PieChart, BarChart } from 'lucide-react'
+import { BarChart3, Calendar, TrendingUp, DollarSign, PieChart, BarChart, Crown } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 export const Reports: React.FC = () => {
-  const { isPremium } = useSubscription()
+  const { isPremium, upgradeToPremium } = useSubscription()
   const { user } = useAuthContext()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,8 +22,11 @@ export const Reports: React.FC = () => {
   useEffect(() => {
     if (user && isPremium()) {
       loadTransactions()
+    } else if (user && !isPremium()) {
+      // Si l'utilisateur n'est pas premium, arrêter le chargement
+      setLoading(false)
     }
-  }, [user, isPremium])
+  }, [user])
 
   const loadTransactions = async () => {
     if (!user) return
@@ -36,13 +39,11 @@ export const Reports: React.FC = () => {
         .order('date', { ascending: false })
 
       if (error) {
-        console.error('Error loading transactions:', error)
         return
       }
 
       setTransactions(data || [])
     } catch (error) {
-      console.error('Error in loadTransactions:', error)
     } finally {
       setLoading(false)
     }
@@ -450,7 +451,14 @@ export const Reports: React.FC = () => {
           </p>
         </div>
 
-        {isPremium() ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Chargement des données...</p>
+            </div>
+          </div>
+        ) : isPremium() ? (
           <div className="space-y-6">
             {/* Sélecteur de période */}
             <Card className="p-6">
@@ -615,7 +623,7 @@ export const Reports: React.FC = () => {
                         {/* 1. Résumé global */}
                         <div>
                           <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-                            📑 1. Résumé Global
+                            1. Résumé Global
                           </h4>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
@@ -653,7 +661,7 @@ export const Reports: React.FC = () => {
                         {report.stats.incomeBreakdown && (
                           <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-                              💰 2. Analyse des Revenus
+                              2. Analyse des Revenus
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
@@ -729,7 +737,7 @@ export const Reports: React.FC = () => {
                         {report.stats.topCategories && report.stats.topCategories.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-                              📊 4. Top Catégories de Dépenses
+                              4. Top Catégories de Dépenses
                             </h4>
                             <div className="space-y-2">
                               {report.stats.topCategories.slice(0, 5).map(([category, amount], index) => (
@@ -756,7 +764,7 @@ export const Reports: React.FC = () => {
                         {report.stats.monthlyBreakdown && (
                           <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-                              📅 5. Évolution Mensuelle
+                              5. Évolution Mensuelle
                             </h4>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                               {report.stats.monthlyBreakdown.map((month, index) => (
@@ -788,7 +796,7 @@ export const Reports: React.FC = () => {
                         {report.stats.budgetAnalysis && (
                           <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-                              🎯 6. Analyse de Performance du Budget
+                              6. Analyse de Performance du Budget
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -834,7 +842,7 @@ export const Reports: React.FC = () => {
                         {report.stats.recommendations && report.stats.recommendations.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-                              💡 {report.stats.monthlyBreakdown ? '6' : report.stats.budgetAnalysis ? '7' : '5'}. Recommandations et Perspectives
+                              {report.stats.monthlyBreakdown ? '6' : report.stats.budgetAnalysis ? '7' : '5'}. Recommandations et Perspectives
                             </h4>
                             <div className="space-y-3">
                               {report.stats.recommendations.map((rec, index) => (
@@ -885,7 +893,7 @@ export const Reports: React.FC = () => {
                 </p>
                 <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                   <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">
-                    🔒 Fonctionnalité Premium
+                    Fonctionnalité Premium
                   </h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
                     Les rapports détaillés sont disponibles uniquement pour les utilisateurs Premium.
@@ -897,7 +905,20 @@ export const Reports: React.FC = () => {
                     <li>• Export PDF professionnel</li>
                   </ul>
                   <p className="text-xs text-blue-500 dark:text-blue-400">
-                    💡 Version Gratuite : Utilisez l'export CSV dans la section Export pour vos données
+                    Version Gratuite : Utilisez l'export CSV dans la section Export pour vos données
+                  </p>
+                </div>
+                <div className="mt-6">
+                  <Button
+                    onClick={() => upgradeToPremium(false)}
+                    size="lg"
+                    className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700"
+                  >
+                    <Crown className="w-5 h-5 mr-2" />
+                    Commencer votre essai gratuit
+                  </Button>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Puis 9.99€/mois. Annulez à tout moment.
                   </p>
                 </div>
               </div>

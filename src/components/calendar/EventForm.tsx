@@ -145,7 +145,6 @@ export const EventForm: React.FC<EventFormProps> = ({
 
       onSave()
     } catch (error) {
-      console.error('Error saving event:', error)
     } finally {
       setLoading(false)
     }

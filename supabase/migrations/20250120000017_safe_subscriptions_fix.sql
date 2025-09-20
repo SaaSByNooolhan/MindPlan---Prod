@@ -64,3 +64,4 @@ SELECT
 FROM auth.users au
 LEFT JOIN public.subscriptions s ON au.id = s.user_id
 WHERE s.user_id IS NULL;
+

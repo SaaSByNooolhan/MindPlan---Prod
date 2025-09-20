@@ -25,7 +25,6 @@ export const useAuth = () => {
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    console.log('Attempting to sign up with:', { email })
     
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -34,15 +33,14 @@ export const useAuth = () => {
       })
       
       if (error) {
-        console.error('Sign up error:', error)
-        console.error('Error details:', JSON.stringify(error, null, 2))
+
+
         return { error }
       } else {
-        console.log('Sign up successful:', data)
         return { data, error: null }
       }
     } catch (err) {
-      console.error('Unexpected error during signup:', err)
+
       return { error: err }
     }
   }

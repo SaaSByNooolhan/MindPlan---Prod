@@ -35,7 +35,7 @@ export const Accounts: React.FC = () => {
           </p>
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-lg mx-auto">
             <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-              🚀 Fonctionnalités prévues pour la v2.0 :
+              Fonctionnalités prévues pour la v2.0 :
             </h4>
             <ul className="text-sm text-blue-700 dark:text-blue-300 text-left space-y-1">
               <li>• Gestion de plusieurs comptes bancaires</li>

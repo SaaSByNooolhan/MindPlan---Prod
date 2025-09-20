@@ -20,7 +20,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onBackToLanding }) => {
     password: ''
   })
   const [error, setError] = useState('')
-  const { startFreeTrial } = useSubscription()
+  const { upgradeToPremium } = useSubscription()
 
   // Vérifier si l'utilisateur veut s'inscrire en Premium
   useEffect(() => {
@@ -59,28 +59,21 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onBackToLanding }) => {
           // Attendre que l'utilisateur soit complètement créé et connecté
           setTimeout(async () => {
             try {
-              console.log('Démarrage de l\'essai Premium...')
-              const result = await startFreeTrial()
+              const result = await upgradeToPremium(false) // false = avec essai gratuit
               if (result?.error) {
-                console.error('Erreur lors du démarrage de l\'essai Premium:', result.error)
                 // Réessayer après 3 secondes supplémentaires
                 setTimeout(async () => {
                   try {
-                    const retryResult = await startFreeTrial()
+                    const retryResult = await upgradeToPremium(false) // false = avec essai gratuit
                     if (retryResult?.error) {
-                      console.error('Erreur lors du retry de l\'essai Premium:', retryResult.error)
                     } else {
-                      console.log('Essai Premium démarré avec succès au retry !')
                     }
                   } catch (retryError) {
-                    console.error('Erreur lors du retry de l\'essai Premium:', retryError)
                   }
                 }, 3000)
               } else {
-                console.log('Essai Premium démarré avec succès !')
               }
             } catch (error) {
-              console.error('Erreur lors du démarrage de l\'essai Premium:', error)
             }
           }, 3000) // Augmenter à 3 secondes
         }

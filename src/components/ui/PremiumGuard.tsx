@@ -90,7 +90,7 @@ export const PremiumGuard: React.FC<PremiumGuardProps> = ({
               className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700"
             >
               <Crown className="w-5 h-5 mr-2" />
-              Essai Premium gratuit - 7 jours
+              Commencer votre essai gratuit
             </Button>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Puis 9.99€/mois. Annulez à tout moment.

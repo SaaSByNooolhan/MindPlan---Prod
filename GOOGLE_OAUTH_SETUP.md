@@ -57,3 +57,4 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 - Le thème est cohérent avec le reste de l'application MindPlan
 
 
+

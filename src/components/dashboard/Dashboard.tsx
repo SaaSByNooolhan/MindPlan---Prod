@@ -64,7 +64,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         .order('date', { ascending: false })
 
       if (error) {
-        console.error('Error loading transactions:', error)
         return
       }
 
@@ -107,7 +106,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       }
 
     } catch (error) {
-      console.error('Error loading dashboard data:', error)
     } finally {
       setLoading(false)
     }

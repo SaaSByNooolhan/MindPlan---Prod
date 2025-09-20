@@ -64,12 +64,12 @@ export const ExportData: React.FC = () => {
         .order('date', { ascending: false })
 
       if (error) {
-        console.error('Error loading transactions:', error)
+
       } else {
         setTransactions(data || [])
       }
     } catch (error) {
-      console.error('Error in loadTransactions:', error)
+
     } finally {
       setLoading(false)
     }
@@ -299,7 +299,7 @@ export const ExportData: React.FC = () => {
 
       setExportStatus('success')
     } catch (error) {
-      console.error('Error generating PDF:', error)
+
       setExportStatus('error')
     } finally {
       setExporting(false)
@@ -383,7 +383,7 @@ export const ExportData: React.FC = () => {
 
       setExportStatus('success')
     } catch (error) {
-      console.error('Error generating Excel:', error)
+
       setExportStatus('error')
     } finally {
       setExporting(false)
@@ -655,7 +655,7 @@ export const ExportData: React.FC = () => {
 
             <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                💡 Conseil
+                Conseil
               </h3>
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 {options.format === 'pdf' 
@@ -665,7 +665,7 @@ export const ExportData: React.FC = () => {
               {!isPremium() && (
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
                   <p className="text-xs text-blue-600 dark:text-blue-400">
-                    🔒 Version Gratuite : Export CSV uniquement. Passez Premium pour l'export PDF.
+                    Version Gratuite : Export CSV uniquement. Passez Premium pour l'export PDF.
                   </p>
                 </div>
               )}

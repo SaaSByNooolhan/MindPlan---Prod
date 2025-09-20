@@ -107,12 +107,12 @@ export const FinancialGoals: React.FC = () => {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error loading goals:', error)
+
       } else {
         setGoals(data || [])
       }
     } catch (error) {
-      console.error('Error in loadGoals:', error)
+
     } finally {
       setLoading(false)
     }
@@ -138,7 +138,7 @@ export const FinancialGoals: React.FC = () => {
         })
 
       if (error) {
-        console.error('Error adding goal:', error)
+
         alert('Erreur lors de l\'ajout de l\'objectif')
       } else {
         setNewGoal({
@@ -155,7 +155,7 @@ export const FinancialGoals: React.FC = () => {
         loadGoals()
       }
     } catch (error) {
-      console.error('Error in addGoal:', error)
+
       alert('Erreur lors de l\'ajout de l\'objectif')
     }
   }
@@ -181,14 +181,14 @@ export const FinancialGoals: React.FC = () => {
         .eq('id', goal.id)
 
       if (error) {
-        console.error('Error updating goal:', error)
+
         alert('Erreur lors de la mise à jour de l\'objectif')
       } else {
         setGoals(goals.map(g => g.id === goal.id ? goal : g))
         setEditingGoal(null)
       }
     } catch (error) {
-      console.error('Error in updateGoal:', error)
+
       alert('Erreur lors de la mise à jour de l\'objectif')
     }
   }
@@ -203,13 +203,13 @@ export const FinancialGoals: React.FC = () => {
         .eq('id', id)
 
       if (error) {
-        console.error('Error deleting goal:', error)
+
         alert('Erreur lors de la suppression de l\'objectif')
       } else {
         setGoals(goals.filter(g => g.id !== id))
       }
     } catch (error) {
-      console.error('Error in deleteGoal:', error)
+
       alert('Erreur lors de la suppression de l\'objectif')
     }
   }

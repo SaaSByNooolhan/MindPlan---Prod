@@ -61,12 +61,12 @@ export const Analytics: React.FC = () => {
         .order('date', { ascending: false })
 
       if (error) {
-        console.error('Error loading transactions:', error)
+
       } else {
         setTransactions(data || [])
       }
     } catch (error) {
-      console.error('Error in loadTransactions:', error)
+
     } finally {
       setLoading(false)
     }
@@ -104,7 +104,7 @@ export const Analytics: React.FC = () => {
           const transactionDate = parseISO(t.date)
           return transactionDate >= monthStart && transactionDate <= monthEnd
         } catch (error) {
-          console.error('Error parsing date:', t.date, error)
+
           return false
         }
       })
@@ -620,7 +620,7 @@ export const Analytics: React.FC = () => {
                     </p>
                     <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                       <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                        🔒 Fonctionnalité Premium
+                        Fonctionnalité Premium
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         Passez Premium pour débloquer les graphiques avancés

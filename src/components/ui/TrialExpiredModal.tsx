@@ -29,7 +29,7 @@ export const TrialExpiredModal: React.FC<TrialExpiredModalProps> = ({ isOpen, on
         alert(`Erreur: ${result.error}`)
       }
     } catch (error) {
-      console.error('Error upgrading direct:', error)
+
       alert('Erreur lors de l\'upgrade. Veuillez réessayer.')
     } finally {
       setIsUpgrading(false)

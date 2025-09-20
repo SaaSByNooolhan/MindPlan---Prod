@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../ui/Card'
 import { PremiumGuard } from '../ui/PremiumGuard'
-import { useSubscription } from '../../hooks/useSubscription'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { 
@@ -28,7 +27,6 @@ import { fr } from 'date-fns/locale'
 
 export const Budgets: React.FC = () => {
   const { user } = useAuthContext()
-  const { isPremium } = useSubscription()
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,17 +62,16 @@ export const Budgets: React.FC = () => {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error loading budgets:', error)
+
         // Si la table n'existe pas, on utilise des données de démonstration
         if (error.message.includes('relation "budgets" does not exist')) {
-          console.log('Table budgets does not exist, using demo data')
           setBudgets([])
         }
       } else {
         setBudgets(data || [])
       }
     } catch (error) {
-      console.error('Error in loadBudgets:', error)
+
       setBudgets([])
     } finally {
       setLoading(false)
@@ -93,12 +90,12 @@ export const Budgets: React.FC = () => {
         .order('date', { ascending: false })
 
       if (error) {
-        console.error('Error loading transactions:', error)
+
       } else {
         setTransactions(data || [])
       }
     } catch (error) {
-      console.error('Error in loadTransactions:', error)
+
     }
   }
 
@@ -161,7 +158,7 @@ export const Budgets: React.FC = () => {
         .select()
 
       if (error) {
-        console.error('Error adding budget:', error)
+
         alert(`Erreur lors de l'ajout du budget: ${error.message}`)
       } else {
         setBudgets([data[0], ...budgets])
@@ -169,7 +166,7 @@ export const Budgets: React.FC = () => {
         setShowAddForm(false)
       }
     } catch (error) {
-      console.error('Error in addBudget:', error)
+
       alert('Erreur lors de l\'ajout du budget')
     }
   }
@@ -189,14 +186,14 @@ export const Budgets: React.FC = () => {
         .eq('id', budget.id)
 
       if (error) {
-        console.error('Error updating budget:', error)
+
         alert('Erreur lors de la mise à jour du budget')
       } else {
         setBudgets(budgets.map(b => b.id === budget.id ? budget : b))
         setEditingBudget(null)
       }
     } catch (error) {
-      console.error('Error in updateBudget:', error)
+
       alert('Erreur lors de la mise à jour du budget')
     }
   }
@@ -211,13 +208,13 @@ export const Budgets: React.FC = () => {
         .eq('id', id)
 
       if (error) {
-        console.error('Error deleting budget:', error)
+
         alert('Erreur lors de la suppression du budget')
       } else {
         setBudgets(budgets.filter(b => b.id !== id))
       }
     } catch (error) {
-      console.error('Error in deleteBudget:', error)
+
       alert('Erreur lors de la suppression du budget')
     }
   }
@@ -285,8 +282,10 @@ export const Budgets: React.FC = () => {
           </Button>
         </div>
 
-        {isPremium() ? (
-          <div className="space-y-8">
+        <PremiumGuard
+          featureName="Gestion des Budgets"
+          description="Créez et gérez vos budgets par catégorie avec suivi en temps réel et alertes intelligentes."
+        >
           {/* Vue d'ensemble des budgets */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card className="p-6">
@@ -602,42 +601,7 @@ export const Budgets: React.FC = () => {
               </Button>
             </Card>
           )}
-          </div>
-        ) : (
-          // Version freemium - budgets limités
-          <div className="space-y-6">
-            <Card className="p-6">
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Target className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Gestion des Budgets
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                  Créez et gérez vos budgets par catégorie avec suivi en temps réel et alertes intelligentes.
-                </p>
-                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">
-                    🔒 Fonctionnalité Premium
-                  </h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                    Les budgets intelligents sont disponibles uniquement pour les utilisateurs Premium.
-                  </p>
-                  <ul className="text-sm text-blue-600 dark:text-blue-400 text-left space-y-1 mb-4">
-                    <li>• Création de budgets par catégorie</li>
-                    <li>• Suivi en temps réel des dépenses</li>
-                    <li>• Alertes automatiques de dépassement</li>
-                    <li>• Rapports de performance des budgets</li>
-                  </ul>
-                  <p className="text-xs text-blue-500 dark:text-blue-400">
-                    💡 Version Gratuite : Suivez vos dépenses avec les graphiques simples dans Analytics
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+        </PremiumGuard>
       </div>
     </div>
   )

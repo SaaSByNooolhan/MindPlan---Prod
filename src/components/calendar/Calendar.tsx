@@ -55,7 +55,6 @@ export const Calendar: React.FC = () => {
       .order('start_time', { ascending: true })
 
     if (error) {
-      console.error('Error loading events:', error)
     } else {
       setEvents(data || [])
     }
@@ -100,7 +99,6 @@ export const Calendar: React.FC = () => {
       .eq('id', eventId)
 
     if (error) {
-      console.error('Error deleting event:', error)
     } else {
       loadEvents()
     }

@@ -62,7 +62,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         .order('date', { ascending: false })
 
       if (error) {
-        console.error('Error loading transactions:', error)
+
       } else {
         setTransactions(data || [])
         // Calculate current balance from all transactions
@@ -73,7 +73,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         setCurrentBalance(transactionBalance)
       }
     } catch (error) {
-      console.error('Error in loadTransactions:', error)
+
     }
   }
 
@@ -82,7 +82,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
     
     // Validation plus robuste
     if (!user) {
-      console.error('User not authenticated')
+
       return
     }
     
@@ -134,7 +134,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         .insert(transactionData)
 
       if (error) {
-        console.error('Error adding transaction:', error)
+
         alert(`Erreur lors de l'ajout de la transaction: ${error.message}`)
       } else {
         // Reset form
@@ -153,10 +153,9 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         setTimeout(() => {
           loadTransactions()
         }, 200)
-        console.log('Transaction ajoutée avec succès')
       }
     } catch (error) {
-      console.error('Error in addTransaction:', error)
+
       alert('Une erreur est survenue lors de l\'ajout de la transaction')
     }
   }
@@ -172,12 +171,12 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         .eq('user_id', user.id)
 
       if (error) {
-        console.error('Error deleting transaction:', error)
+
       } else {
         loadTransactions()
       }
     } catch (error) {
-      console.error('Error in deleteTransaction:', error)
+
     }
   }
 
@@ -197,7 +196,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         .eq('user_id', user.id)
 
       if (error) {
-        console.error('Error resetting transactions:', error)
+
         alert('Erreur lors de la suppression des transactions')
       } else {
         setTransactions([])
@@ -205,7 +204,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         alert('Toutes vos transactions ont été supprimées')
       }
     } catch (error) {
-      console.error('Error in resetAllTransactions:', error)
+
       alert('Une erreur est survenue lors de la suppression')
     }
   }
@@ -295,13 +294,13 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
         <Card className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-800">
           <div className="text-center p-4">
             <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
-              📊 Version Gratuite - MindPlan
+              Version Gratuite - MindPlan
             </h3>
             <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
               Vous utilisez la version gratuite avec 10 transactions par mois, graphiques simples et export CSV.
             </p>
             <div className="text-xs text-blue-600 dark:text-blue-400">
-              💡 Passez Premium pour des transactions illimitées, analytics avancées et exports PDF
+              Passez Premium pour des transactions illimitées, analytics avancées et exports PDF
             </div>
           </div>
         </Card>
@@ -322,7 +321,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
                     <h4 className="font-medium text-gray-900 dark:text-gray-100">{transaction.title}</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.category}</p>
                     <p className="text-xs text-blue-600 dark:text-blue-400">
-                      🔄 {transaction.recurrence_interval === 1 ? (
+                      {transaction.recurrence_interval === 1 ? (
                         <>
                           {transaction.recurrence_type === 'daily' && 'Tous les jours'}
                           {transaction.recurrence_type === 'weekly' && 'Toutes les semaines'}
@@ -573,14 +572,14 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
                       transaction.title.includes('(Hebdomadaire)') || transaction.title.includes('(Annuel)') || 
                       transaction.title.includes('(Quotidien)')) && (
                       <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
-                        🔄
+                        Recurrent
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.category}</p>
                   {transaction.is_recurring && (
                     <p className="text-xs text-blue-600 dark:text-blue-400">
-                      🔄 {transaction.recurrence_interval === 1 ? (
+                      {transaction.recurrence_interval === 1 ? (
                         <>
                           {transaction.recurrence_type === 'daily' && 'Tous les jours'}
                           {transaction.recurrence_type === 'weekly' && 'Toutes les semaines'}

@@ -206,7 +206,7 @@ export const BasicStats: React.FC<BasicStatsProps> = ({ transactions, monthlyBud
                   <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.category}</p>
                   {transaction.title.includes('(Mensuel)') || transaction.title.includes('(Hebdomadaire)') || 
                    transaction.title.includes('(Annuel)') || transaction.title.includes('(Quotidien)') ? (
-                    <p className="text-xs text-blue-600 dark:text-blue-400">🔄 Élément récurrent</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Élément récurrent</p>
                   ) : null}
                 </div>
               </div>

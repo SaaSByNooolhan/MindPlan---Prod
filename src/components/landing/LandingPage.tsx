@@ -29,35 +29,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false)
   const [isInteractiveDemoOpen, setIsInteractiveDemoOpen] = useState(false)
-  const { startFreeTrial } = useSubscription()
+  const { upgradeToPremium } = useSubscription()
   const [isPremiumLoading, setIsPremiumLoading] = useState(false)
 
-  const handleUpgrade = async () => {
-    try {
-      console.log('Bouton Premium cliqué depuis la landing page')
-      // Rediriger vers l'inscription pour passer à Premium
-      alert('Inscription Premium ! Créez votre compte et accédez à toutes les fonctionnalités Premium.')
-      onNavigateToAuth('signup')
-    } catch (error) {
-      console.error('Error upgrading:', error)
-      alert('Erreur lors de l\'upgrade. Veuillez réessayer.')
-    }
-  }
-
-  const handlePremiumSignup = async () => {
+  const handleStartTrial = async () => {
     setIsPremiumLoading(true)
     try {
-      // Marquer que l'utilisateur veut s'inscrire en Premium
-      localStorage.setItem('wantsPremium', 'true')
-      // Nettoyer les autres flags
-      localStorage.removeItem('forceSignup')
-      localStorage.removeItem('fromDemo')
-      
-      // Rediriger vers l'inscription
-      onNavigateToAuth('signup')
+      // Rediriger vers Stripe pour l'essai gratuit de 7 jours
+      await upgradeToPremium(false) // false = avec essai gratuit
     } catch (error) {
-      console.error('Error in premium signup:', error)
-      alert('Erreur lors de l\'inscription Premium. Veuillez réessayer.')
+      alert('Erreur lors du démarrage de l\'essai. Veuillez réessayer.')
     } finally {
       setIsPremiumLoading(false)
     }
@@ -67,17 +48,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
     // Nettoyer les flags et aller à l'inscription
     localStorage.removeItem('forceSignup')
     localStorage.removeItem('fromDemo')
-    onNavigateToAuth('signup')
-  }
-
-  const handleFreeTrial = () => {
-    // Marquer que l'utilisateur veut un essai gratuit
-    localStorage.setItem('wantsFreeTrial', 'true')
-    localStorage.removeItem('wantsPremium')
-    localStorage.removeItem('forceSignup')
-    localStorage.removeItem('fromDemo')
-    
-    // Rediriger vers l'inscription
     onNavigateToAuth('signup')
   }
 
@@ -136,8 +106,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         '10 transactions par mois',
         'Graphiques simples',
         '1 compte bancaire',
-        'Export CSV',
-        'Support par email'
+        'Objectifs financiers',
+        'Export CSV'
       ],
       popular: false
     },
@@ -153,8 +123,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         'Rapports détaillés',
         'Objectifs financiers',
         'Export PDF/Excel',
-        'Support prioritaire',
-        'Accès immédiat'
+        'Essai gratuit 7 jours'
       ],
       popular: true
     }
@@ -255,8 +224,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               suivre vos dépenses et atteindre vos objectifs financiers.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={handleFreeTrial} className="text-lg px-8 py-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
-                🎉 Essai Gratuit 7 jours
+              <Button 
+                size="lg" 
+                onClick={handleStartTrial} 
+                disabled={isPremiumLoading}
+                className="text-lg px-8 py-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
+              >
+                {isPremiumLoading ? 'Chargement...' : 'Commencer votre essai gratuit'}
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button variant="outline" size="lg" className="text-lg px-8 py-4" onClick={handleFreeSignup}>
@@ -323,7 +297,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <h3 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2">Version Gratuite</h3>
                 <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                  Suivi de base, 10 transactions/mois, graphiques simples, export CSV
+                  Suivi de base, 10 transactions/mois, graphiques simples, objectifs financiers, export CSV
                 </p>
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -368,7 +342,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             </p>
             <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 p-4 rounded-lg max-w-2xl mx-auto border border-blue-200 dark:border-blue-800">
               <p className="text-blue-800 dark:text-blue-200 font-medium">
-                🎉 Essai gratuit de 7 jours pour tester toutes les fonctionnalités Premium
+                Essai gratuit de 7 jours avec Stripe pour tester toutes les fonctionnalités Premium
               </p>
             </div>
           </div>
@@ -409,22 +383,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                 </ul>
 
                 {plan.name === 'Premium' ? (
-                  <div className="space-y-3">
-                    <Button 
-                      onClick={handleFreeTrial}
-                      className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
-                    >
-                      🎉 Essai Gratuit 7 jours
-                    </Button>
-                    <Button 
-                      onClick={handlePremiumSignup}
-                      variant="outline"
-                      className="w-full"
-                      disabled={isPremiumLoading}
-                    >
-                      {isPremiumLoading ? 'Chargement...' : 'Paiement Direct'}
-                    </Button>
-                  </div>
+                  <Button 
+                    onClick={handleStartTrial}
+                    disabled={isPremiumLoading}
+                    className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
+                  >
+                    {isPremiumLoading ? 'Chargement...' : 'Commencer votre essai gratuit'}
+                  </Button>
                 ) : (
                   <Button 
                     onClick={handleFreeSignup}
@@ -450,8 +415,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
             Rejoignez des milliers d'utilisateurs qui ont déjà amélioré leur situation financière avec MindPlan
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={handleFreeTrial} className="text-lg px-8 py-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
-              🎉 Essai Gratuit 7 jours
+            <Button 
+              size="lg" 
+              onClick={handleStartTrial} 
+              disabled={isPremiumLoading}
+              className="text-lg px-8 py-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
+            >
+              {isPremiumLoading ? 'Chargement...' : 'Commencer votre essai gratuit'}
               <ChevronRight className="ml-2 w-5 h-5" />
             </Button>
             <Button variant="outline" size="lg" onClick={handleFreeSignup} className="text-lg px-8 py-4">

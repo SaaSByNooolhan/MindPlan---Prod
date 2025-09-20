@@ -182,14 +182,14 @@ export const BasicCharts: React.FC<BasicChartsProps> = ({ transactions }) => {
       <Card className="p-6 bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-800">
         <div className="text-center">
           <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
-            📊 Graphiques Simples - Version Gratuite
+            Graphiques Simples - Version Gratuite
           </h3>
           <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
             Vous visualisez vos données de base. Passez Premium pour accéder aux graphiques avancés, 
             aux analyses détaillées et aux exports PDF.
           </p>
           <div className="text-xs text-blue-600 dark:text-blue-400">
-            💡 Limite actuelle : 10 transactions par mois
+            Limite actuelle : 10 transactions par mois
           </div>
         </div>
       </Card>

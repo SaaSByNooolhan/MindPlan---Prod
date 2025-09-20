@@ -14,11 +14,11 @@ export const PremiumUpgrade: React.FC = () => {
     try {
       const { error } = await upgradeToPremium()
       if (error) {
-        console.error('Error upgrading to premium:', error)
+
         alert('Erreur lors de l\'upgrade. Veuillez réessayer.')
       }
     } catch (error) {
-      console.error('Error upgrading to premium:', error)
+
       alert('Erreur lors de l\'upgrade. Veuillez réessayer.')
     } finally {
       setIsLoading(false)

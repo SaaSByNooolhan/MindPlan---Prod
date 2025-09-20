@@ -50,7 +50,7 @@ export const TaskList: React.FC<TaskListProps> = ({ initialParams }) => {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error loading tasks:', error)
+
     } else {
       setTasks(data || [])
     }
@@ -80,7 +80,7 @@ export const TaskList: React.FC<TaskListProps> = ({ initialParams }) => {
       })
 
     if (error) {
-      console.error('Error adding task:', error)
+
       alert(`Erreur lors de la création de la tâche: ${error.message}`)
     } else {
       setNewTask({
@@ -104,7 +104,7 @@ export const TaskList: React.FC<TaskListProps> = ({ initialParams }) => {
       .eq('id', taskId)
 
     if (error) {
-      console.error('Error updating task:', error)
+
     } else {
       loadTasks()
     }
@@ -117,7 +117,7 @@ export const TaskList: React.FC<TaskListProps> = ({ initialParams }) => {
       .eq('id', taskId)
 
     if (error) {
-      console.error('Error deleting task:', error)
+
     } else {
       loadTasks()
     }

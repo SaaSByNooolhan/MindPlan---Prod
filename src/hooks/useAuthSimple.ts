@@ -25,7 +25,6 @@ export const useAuthSimple = () => {
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    console.log('Simple signup attempt:', { email })
     
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -33,10 +32,8 @@ export const useAuthSimple = () => {
         password,
       })
       
-      console.log('Signup result:', { data, error })
       return { data, error }
     } catch (err) {
-      console.error('Signup error:', err)
       return { data: null, error: err }
     }
   }
@@ -53,19 +50,6 @@ export const useAuthSimple = () => {
     }
   }
 
-  const signInWithGoogle = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`
-        }
-      })
-      return { data, error }
-    } catch (err) {
-      return { data: null, error: err }
-    }
-  }
 
   const signOut = async () => {
     try {
@@ -81,7 +65,6 @@ export const useAuthSimple = () => {
     loading,
     signUp,
     signIn,
-    signInWithGoogle,
     signOut,
   }
 }

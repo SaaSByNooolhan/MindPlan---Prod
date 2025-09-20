@@ -87,7 +87,7 @@ export const InteractiveDemo: React.FC<InteractiveDemoProps> = ({ isOpen, onClos
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Dashboard Financier 💰
+            Dashboard Financier
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Vue d'ensemble de vos finances
@@ -594,7 +594,7 @@ export const InteractiveDemo: React.FC<InteractiveDemoProps> = ({ isOpen, onClos
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
             </div>
             <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
-              💰 Gestion Financière
+              Gestion Financière
             </div>
           </div>
           

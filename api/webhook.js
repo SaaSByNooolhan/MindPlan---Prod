@@ -200,11 +200,15 @@ async function handlePaymentSucceeded(invoice) {
       return
     }
 
-    // Mettre à jour le statut de l'abonnement
+    // Mettre à jour le statut de l'abonnement avec plus de détails
     const { error } = await supabase
       .from('subscriptions')
       .update({
         status: 'active',
+        plan_type: 'premium', // S'assurer que le plan est bien premium
+        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        updated_at: new Date().toISOString()
       })
       .eq('stripe_subscription_id', subscriptionId)
 

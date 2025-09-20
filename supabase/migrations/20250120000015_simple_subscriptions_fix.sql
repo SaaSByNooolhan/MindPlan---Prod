@@ -124,3 +124,4 @@ BEGIN
         ADD CONSTRAINT unique_user_subscription UNIQUE (user_id);
     END IF;
 END $$;
+

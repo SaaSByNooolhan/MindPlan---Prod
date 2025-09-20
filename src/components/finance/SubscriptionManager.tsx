@@ -3,7 +3,6 @@ import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { 
   Crown, 
-  CreditCard, 
   CheckCircle, 
   AlertTriangle,
   Loader2,
@@ -18,27 +17,24 @@ export const SubscriptionManager: React.FC = () => {
     upgradeToPremium, 
     manageSubscription, 
     getTrialDaysLeft,
-    startFreeTrial,
     loading 
   } = useSubscription()
   
-  const [isUpgrading, setIsUpgrading] = useState(false)
-  const [isManaging, setIsManaging] = useState(false)
   const [isStartingTrial, setIsStartingTrial] = useState(false)
+  const [isManaging, setIsManaging] = useState(false)
 
-
-  const handleUpgradeDirect = async () => {
-    setIsUpgrading(true)
+  const handleStartTrial = async () => {
+    setIsStartingTrial(true)
     try {
-      const result = await upgradeToPremium(true) // Sans essai gratuit
+      const result = await upgradeToPremium(false) // Avec essai gratuit Stripe
       if (result?.error) {
         alert(`Erreur: ${result.error}`)
       }
     } catch (error) {
-      console.error('Error upgrading direct:', error)
-      alert('Erreur lors de l\'upgrade. Veuillez réessayer.')
+
+      alert('Erreur lors du démarrage de l\'essai. Veuillez réessayer.')
     } finally {
-      setIsUpgrading(false)
+      setIsStartingTrial(false)
     }
   }
 
@@ -50,27 +46,10 @@ export const SubscriptionManager: React.FC = () => {
         alert(`Erreur: ${result.error}`)
       }
     } catch (error) {
-      console.error('Error managing subscription:', error)
+
       alert('Erreur lors de l\'accès au portail. Veuillez réessayer.')
     } finally {
       setIsManaging(false)
-    }
-  }
-
-  const handleStartFreeTrial = async () => {
-    setIsStartingTrial(true)
-    try {
-      const result = await startFreeTrial()
-      if (result?.error) {
-        alert(`Erreur: ${result.error}`)
-      } else {
-        alert('🎉 Essai gratuit de 7 jours démarré ! Profitez de toutes les fonctionnalités Premium.')
-      }
-    } catch (error) {
-      console.error('Error starting free trial:', error)
-      alert('Erreur lors du démarrage de l\'essai gratuit. Veuillez réessayer.')
-    } finally {
-      setIsStartingTrial(false)
     }
   }
 
@@ -155,48 +134,27 @@ export const SubscriptionManager: React.FC = () => {
             </p>
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                💡 Limite actuelle : 10 transactions par mois, graphiques simples, export CSV
+                Limite actuelle : 10 transactions par mois, graphiques simples, export CSV
               </p>
             </div>
             
-            <div className="space-y-3">
-              <Button 
-                onClick={handleStartFreeTrial}
-                disabled={isStartingTrial}
-                className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
-              >
-                {isStartingTrial ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Démarrage...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2" />
-                    🎉 Essai Gratuit 7 jours
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={handleUpgradeDirect}
-                disabled={isUpgrading}
-                variant="outline"
-                className="w-full"
-              >
-                {isUpgrading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Chargement...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    Paiement Direct
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button 
+              onClick={handleStartTrial}
+              disabled={isStartingTrial}
+              className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
+            >
+              {isStartingTrial ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Chargement...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 mr-2" />
+                  Commencer votre essai gratuit
+                </>
+              )}
+            </Button>
           </div>
         )}
 
@@ -294,20 +252,20 @@ export const SubscriptionManager: React.FC = () => {
                   Accédez à toutes les fonctionnalités Premium pour 9.99€/mois
                 </p>
                 <Button 
-                  onClick={handleUpgradeDirect}
-                  disabled={isUpgrading}
+                  onClick={handleStartTrial}
+                  disabled={isStartingTrial}
                   className="w-full"
                   size="lg"
                 >
-                  {isUpgrading ? (
+                  {isStartingTrial ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Chargement...
                     </>
                   ) : (
                     <>
-                      <CreditCard className="w-5 h-5 mr-2" />
-                      S'abonner maintenant
+                      <Zap className="w-5 h-5 mr-2" />
+                      Commencer votre essai gratuit
                     </>
                   )}
                 </Button>

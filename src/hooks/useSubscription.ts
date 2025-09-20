@@ -21,6 +21,7 @@ export const useSubscription = () => {
     if (!user) return
 
     try {
+      
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -29,7 +30,6 @@ export const useSubscription = () => {
         .limit(1)
 
       if (error) {
-        console.error('Error loading subscription:', error)
         // Si pas d'abonnement trouvé, créer un abonnement gratuit par défaut
         if (error.code === 'PGRST116' || error.message.includes('No rows found')) {
           await createDefaultSubscription()
@@ -44,7 +44,6 @@ export const useSubscription = () => {
         await createDefaultSubscription()
       }
     } catch (error) {
-      console.error('Error in loadSubscription:', error)
       // En cas d'erreur, créer un abonnement par défaut
       await createDefaultSubscription()
     } finally {
@@ -52,35 +51,21 @@ export const useSubscription = () => {
     }
   }
 
+  // Fonction pour recharger l'abonnement après un paiement
+  const refreshSubscription = async () => {
+    setLoading(true)
+    await loadSubscription()
+  }
+
   const createDefaultSubscription = async () => {
     if (!user) return
 
     try {
-      // Vérifier si l'utilisateur veut un essai gratuit
-      const wantsFreeTrial = localStorage.getItem('wantsFreeTrial') === 'true'
-      
-      let subscriptionData
-      if (wantsFreeTrial) {
-        // Créer un essai gratuit de 7 jours
-        const trialEnd = new Date()
-        trialEnd.setDate(trialEnd.getDate() + 7)
-        
-        subscriptionData = {
-          user_id: user.id,
-          plan_type: 'premium',
-          status: 'trial',
-          trial_end: trialEnd.toISOString()
-        }
-        
-        // Nettoyer le flag
-        localStorage.removeItem('wantsFreeTrial')
-      } else {
-        // Créer un abonnement gratuit par défaut
-        subscriptionData = {
-          user_id: user.id,
-          plan_type: 'free',
-          status: 'active'
-        }
+      // Créer un abonnement gratuit par défaut (plus d'essai gratuit local)
+      const subscriptionData = {
+        user_id: user.id,
+        plan_type: 'free',
+        status: 'active'
       }
 
       const { data, error } = await supabase
@@ -90,7 +75,6 @@ export const useSubscription = () => {
         .single()
 
       if (error) {
-        console.error('Error creating default subscription:', error)
         // Si l'erreur est due à une contrainte unique, essayer de récupérer l'abonnement existant
         if (error.code === '23505') {
           await loadSubscription()
@@ -99,12 +83,15 @@ export const useSubscription = () => {
         setSubscription(data)
       }
     } catch (error) {
-      console.error('Error in createDefaultSubscription:', error)
+      // Erreur silencieuse
     }
   }
 
   const isPremium = () => {
-    if (!subscription) return false
+    if (!subscription) {
+      return false
+    }
+    
     
     // Vérifier si c'est un abonnement freemium
     if (subscription.plan_type === 'free') {
@@ -127,13 +114,20 @@ export const useSubscription = () => {
         trialEnd.setDate(trialEnd.getDate() + 7) // 7 jours d'essai
       }
       
-      if (new Date() <= trialEnd) {
+      const now = new Date()
+      if (now <= trialEnd) {
         return true // Essai encore valide
       } else {
         // Essai expiré, retourner en freemium
         handleTrialExpiration()
         return false
       }
+    }
+    
+    // Vérifier les autres statuts premium (past_due, etc.)
+    if (subscription.plan_type === 'premium' && ['past_due', 'unpaid'].includes(subscription.status)) {
+      // Même avec un problème de paiement, on peut laisser l'accès temporairement
+      return true
     }
     
     // Par défaut, considérer comme freemium
@@ -144,7 +138,6 @@ export const useSubscription = () => {
     if (!user || !subscription) return
     
     try {
-      console.log('Trial expired, converting to freemium...')
       
       // Mettre à jour l'état local immédiatement
       setSubscription(prev => prev ? {
@@ -166,95 +159,16 @@ export const useSubscription = () => {
         .eq('id', subscription.id)
 
       if (error) {
-        console.error('Error updating trial expiration:', error)
         // En cas d'erreur, recharger depuis la base
         await loadSubscription()
-      } else {
-        console.log('Successfully converted trial to freemium')
       }
     } catch (error) {
-      console.error('Error in handleTrialExpiration:', error)
       // En cas d'erreur, recharger depuis la base
       await loadSubscription()
     }
   }
 
-  const startFreeTrial = async () => {
-    if (!user) return { error: 'User not authenticated' }
-
-    try {
-      console.log('Starting free trial for user:', user.id)
-      
-      // D'abord, vérifier s'il y a déjà un abonnement
-      const { data: existingSubscription } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-
-      const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 jours
-      
-      if (existingSubscription) {
-        console.log('Existing subscription found, updating to trial...')
-        
-        // Mettre à jour l'état local immédiatement
-        setSubscription({
-          ...existingSubscription,
-          plan_type: 'premium',
-          status: 'trial',
-          trial_end: trialEnd
-        })
-        
-        // Mettre à jour l'abonnement existant vers l'essai Premium en arrière-plan
-        const { error } = await supabase
-          .from('subscriptions')
-          .update({
-            plan_type: 'premium',
-            status: 'trial',
-            trial_end: trialEnd
-          })
-          .eq('user_id', user.id)
-          .eq('id', existingSubscription.id)
-
-        if (error) {
-          console.error('Error updating subscription to trial:', error)
-          // En cas d'erreur, recharger depuis la base
-          await loadSubscription()
-          return { error: error.message }
-        }
-      } else {
-        console.log('No existing subscription, creating new trial...')
-        
-        // Créer un nouvel essai gratuit de 7 jours
-        const newSubscription = {
-          user_id: user.id,
-          plan_type: 'premium',
-          status: 'trial',
-          trial_end: trialEnd,
-          created_at: new Date().toISOString()
-        }
-        
-        // Mettre à jour l'état local immédiatement
-        setSubscription(newSubscription as any)
-        
-        const { error } = await supabase
-          .from('subscriptions')
-          .insert(newSubscription)
-
-        if (error) {
-          console.error('Error creating free trial:', error)
-          // En cas d'erreur, recharger depuis la base
-          await loadSubscription()
-          return { error: error.message }
-        }
-      }
-      console.log('Free trial started successfully!')
-      return { error: null }
-    } catch (error) {
-      console.error('Error in startFreeTrial:', error)
-      return { error }
-    }
-  }
+  // Fonction supprimée - plus d'essai gratuit local, uniquement via Stripe
 
   const upgradeToPremium = async (skipTrial: boolean = false) => {
     if (!user) return { error: 'User not authenticated' }
@@ -271,7 +185,6 @@ export const useSubscription = () => {
       }
       return { error: null }
     } catch (error) {
-      console.error('Error in upgradeToPremium:', error)
       return { error: error.message || 'Erreur lors de l\'upgrade' }
     }
   }
@@ -284,7 +197,6 @@ export const useSubscription = () => {
       window.location.href = portalUrl
       return { error: null }
     } catch (error) {
-      console.error('Error in manageSubscription:', error)
       return { error }
     }
   }
@@ -315,10 +227,10 @@ export const useSubscription = () => {
     subscription,
     loading,
     isPremium,
-    startFreeTrial,
     upgradeToPremium,
     manageSubscription,
     loadSubscription,
+    refreshSubscription,
     getTrialDaysLeft,
     isTrialExpired
   }
