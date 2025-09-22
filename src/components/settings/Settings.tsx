@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { 
@@ -6,7 +6,9 @@ import {
   Sun,
   Moon,
   LogOut,
-  Mail
+  Mail,
+  Zap,
+  CheckCircle
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -17,6 +19,23 @@ export const Settings: React.FC = () => {
   const { user } = useAuthContext()
   const { toggleTheme } = useTheme()
   const { signOut } = useAuth()
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false)
+
+  useEffect(() => {
+    // Vérifier si l'utilisateur vient de s'inscrire et veut l'essai premium
+    const wantsPremium = localStorage.getItem('wantsPremium') === 'true'
+    const isNewSignup = localStorage.getItem('isNewSignup') === 'true'
+    
+    if (wantsPremium && isNewSignup) {
+      setShowWelcomeMessage(true)
+      // Nettoyer les flags après 5 secondes
+      setTimeout(() => {
+        localStorage.removeItem('wantsPremium')
+        localStorage.removeItem('isNewSignup')
+        setShowWelcomeMessage(false)
+      }, 5000)
+    }
+  }, [])
 
   const handleSignOut = async () => {
     try {
@@ -32,6 +51,27 @@ export const Settings: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">
           Paramètres
         </h1>
+
+        {/* Message de bienvenue pour l'essai gratuit */}
+        {showWelcomeMessage && (
+          <div className="mb-6">
+            <Card className="p-6 bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 border-emerald-200 dark:border-emerald-800">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-full flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-200">
+                    Bienvenue sur MindPlan !
+                  </h3>
+                  <p className="text-emerald-700 dark:text-emerald-300">
+                    Commencez votre essai gratuit de 7 jours pour découvrir toutes les fonctionnalités Premium.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Section principale - Abonnement */}
         <div className="mb-8">

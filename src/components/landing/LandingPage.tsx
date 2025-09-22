@@ -35,8 +35,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
   const handleStartTrial = async () => {
     setIsPremiumLoading(true)
     try {
-      // Rediriger vers Stripe pour l'essai gratuit de 7 jours
-      await upgradeToPremium(false) // false = avec essai gratuit
+      // Marquer que l'utilisateur veut l'essai premium
+      localStorage.setItem('wantsPremium', 'true')
+      localStorage.setItem('isNewSignup', 'true')
+      
+      // Rediriger vers l'inscription
+      onNavigateToAuth('signup')
     } catch (error) {
       alert('Erreur lors du démarrage de l\'essai. Veuillez réessayer.')
     } finally {

@@ -66,25 +66,15 @@ export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding,
         } else {
           setSuccess('Inscription réussie ! Vérifiez votre email.')
           
-          // Si l'utilisateur veut Premium, rediriger vers Stripe Checkout
+          // Si l'utilisateur veut Premium, garder les flags pour redirection vers les paramètres
           if (wantsPremium) {
-            try {
-              // Attendre un peu que l'utilisateur soit créé
-              setTimeout(async () => {
-                try {
-                  await redirectToCheckout('price_1S5EWfQYDIbMKdHDvz4q1JhS', data.user?.id || '', formData.email)
-                } catch (error) {
-                  alert('Inscription réussie ! Vous pouvez maintenant vous abonner depuis les Paramètres.')
-                }
-              }, 2000)
-            } catch (error) {
-
-            }
-            // Nettoyer le flag
-            localStorage.removeItem('wantsPremium')
+            // Garder les flags pour que App.tsx redirige vers les paramètres
+            // après la connexion automatique
+            setSuccess('Inscription réussie ! Redirection vers l\'essai gratuit...')
           } else {
             // Si pas d'intention Premium, nettoyer le flag
             localStorage.removeItem('wantsPremium')
+            localStorage.removeItem('isNewSignup')
           }
         }
       }
