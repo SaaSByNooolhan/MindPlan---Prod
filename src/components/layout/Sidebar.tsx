@@ -32,14 +32,8 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
   const isAdmin = user?.email === 'nooolhansaas@gmail.com';
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'finance', label: 'Transactions', icon: DollarSign },
-    { id: 'accounts', label: 'Comptes', icon: CreditCard },
-    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
-    { id: 'budgets', label: 'Budgets', icon: PieChart },
-    { id: 'goals', label: 'Objectifs', icon: Target },
-    { id: 'reports', label: 'Rapports', icon: BarChart3 },
-    { id: 'export', label: 'Export', icon: Download },
+    { id: 'dashboard', label: 'Accueil', icon: LayoutDashboard },
+    { id: 'finance', label: 'Finances', icon: DollarSign },
     { id: 'settings', label: 'Paramètres', icon: Settings },
     // Afficher l'onglet Admin seulement pour l'admin
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),

@@ -5,14 +5,8 @@ import { PomodoroProvider } from './contexts/PomodoroContext'
 import { AuthFormSimple } from './components/auth/AuthFormSimple'
 import { LandingPage } from './components/landing/LandingPage'
 import Sidebar from './components/layout/Sidebar'
-import { Dashboard } from './components/dashboard/Dashboard'
-import { FinanceTracker } from './components/finance/FinanceTracker'
-import { Analytics } from './components/finance/Analytics'
-import { Budgets } from './components/finance/Budgets'
-import { Reports } from './components/finance/Reports'
-import { Accounts } from './components/finance/Accounts'
-import { FinancialGoals } from './components/finance/FinancialGoals'
-import { ExportData } from './components/finance/ExportData'
+import { SimpleDashboard } from './components/dashboard/SimpleDashboard'
+import { FinanceHub } from './components/finance/FinanceHub'
 import { Settings } from './components/settings/Settings'
 import { TrialExpiredModal } from './components/ui/TrialExpiredModal'
 import { AdminPanel } from './components/admin/AdminPanel'
@@ -26,7 +20,7 @@ const AppContent: React.FC = () => {
   const getInitialSection = () => {
     if (typeof window !== 'undefined') {
       const lastSection = localStorage.getItem('lastActiveSection')
-      const validSections = ['dashboard', 'finance', 'analytics', 'budgets', 'reports', 'accounts', 'goals', 'export', 'settings', 'admin']
+      const validSections = ['dashboard', 'finance', 'settings', 'admin']
       if (lastSection && validSections.includes(lastSection)) {
         return lastSection
       }
@@ -110,27 +104,15 @@ const AppContent: React.FC = () => {
     const content = (() => {
       switch (activeSection) {
         case 'dashboard':
-          return <Dashboard onNavigate={handleNavigate} />
+          return <SimpleDashboard onNavigate={handleNavigate} />
         case 'finance':
-          return <FinanceTracker initialParams={sectionParams} />
-        case 'analytics':
-          return <Analytics />
-        case 'budgets':
-          return <Budgets />
-        case 'accounts':
-          return <Accounts />
-        case 'goals':
-          return <FinancialGoals />
-        case 'export':
-          return <ExportData />
-        case 'reports':
-          return <Reports />
+          return <FinanceHub initialSection={sectionParams?.section || 'overview'} />
         case 'settings':
           return <Settings />
         case 'admin':
           return <AdminPanel />
         default:
-          return <Dashboard onNavigate={handleNavigate} />
+          return <SimpleDashboard onNavigate={handleNavigate} />
       }
     })()
 
