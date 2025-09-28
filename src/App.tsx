@@ -15,6 +15,7 @@ import { FinancialGoals } from './components/finance/FinancialGoals'
 import { ExportData } from './components/finance/ExportData'
 import { Settings } from './components/settings/Settings'
 import { TrialExpiredModal } from './components/ui/TrialExpiredModal'
+import { AdminPanel } from './components/admin/AdminPanel'
 import { useSubscription } from './hooks/useSubscription'
 
 const AppContent: React.FC = () => {
@@ -25,7 +26,7 @@ const AppContent: React.FC = () => {
   const getInitialSection = () => {
     if (typeof window !== 'undefined') {
       const lastSection = localStorage.getItem('lastActiveSection')
-      const validSections = ['dashboard', 'finance', 'analytics', 'budgets', 'reports', 'accounts', 'goals', 'export', 'settings']
+      const validSections = ['dashboard', 'finance', 'analytics', 'budgets', 'reports', 'accounts', 'goals', 'export', 'settings', 'admin']
       if (lastSection && validSections.includes(lastSection)) {
         return lastSection
       }
@@ -126,6 +127,8 @@ const AppContent: React.FC = () => {
           return <Reports />
         case 'settings':
           return <Settings />
+        case 'admin':
+          return <AdminPanel />
         default:
           return <Dashboard onNavigate={handleNavigate} />
       }

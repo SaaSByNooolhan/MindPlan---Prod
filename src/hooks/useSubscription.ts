@@ -103,6 +103,23 @@ export const useSubscription = () => {
       return true
     }
     
+    // Vérifier si c'est un testeur beta
+    if (subscription.plan_type === 'premium' && subscription.status === 'beta') {
+      // Vérifier si la période beta n'a pas expiré
+      if (subscription.beta_end) {
+        const betaEnd = new Date(subscription.beta_end)
+        const now = new Date()
+        if (now <= betaEnd) {
+          return true // Période beta encore valide
+        } else {
+          // Période beta expirée, retourner en freemium
+          handleBetaExpiration()
+          return false
+        }
+      }
+      return true // Si pas de date de fin définie, considérer comme valide
+    }
+    
     // Vérifier si c'est un essai gratuit
     if (subscription.plan_type === 'premium' && subscription.status === 'trial') {
       // Vérifier si l'essai n'a pas expiré
@@ -168,6 +185,42 @@ export const useSubscription = () => {
     }
   }
 
+  const handleBetaExpiration = async () => {
+    if (!user || !subscription) return
+    
+    try {
+      
+      // Mettre à jour l'état local immédiatement
+      setSubscription(prev => prev ? {
+        ...prev,
+        plan_type: 'free',
+        status: 'active',
+        beta_end: null,
+        is_beta_tester: false
+      } : null)
+      
+      // Mettre à jour le statut vers freemium en arrière-plan
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ 
+          plan_type: 'free', 
+          status: 'active',
+          beta_end: null,
+          is_beta_tester: false
+        })
+        .eq('user_id', user.id)
+        .eq('id', subscription.id)
+
+      if (error) {
+        // En cas d'erreur, recharger depuis la base
+        await loadSubscription()
+      }
+    } catch (error) {
+      // En cas d'erreur, recharger depuis la base
+      await loadSubscription()
+    }
+  }
+
   // Fonction supprimée - plus d'essai gratuit local, uniquement via Stripe
 
   const upgradeToPremium = async (skipTrial: boolean = false) => {
@@ -219,8 +272,26 @@ export const useSubscription = () => {
     return Math.max(0, daysLeft)
   }
 
+  const getBetaDaysLeft = () => {
+    if (!subscription || subscription.status !== 'beta' || !subscription.beta_end) return 0
+    
+    const betaEnd = new Date(subscription.beta_end)
+    const now = new Date()
+    const daysLeft = Math.ceil((betaEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    
+    return Math.max(0, daysLeft)
+  }
+
   const isTrialExpired = () => {
     return getTrialDaysLeft() <= 0
+  }
+
+  const isBetaExpired = () => {
+    return getBetaDaysLeft() <= 0
+  }
+
+  const isBetaTester = () => {
+    return subscription?.status === 'beta' && subscription?.is_beta_tester === true
   }
 
   return {
@@ -232,6 +303,9 @@ export const useSubscription = () => {
     loadSubscription,
     refreshSubscription,
     getTrialDaysLeft,
-    isTrialExpired
+    isTrialExpired,
+    getBetaDaysLeft,
+    isBetaExpired,
+    isBetaTester
   }
 }

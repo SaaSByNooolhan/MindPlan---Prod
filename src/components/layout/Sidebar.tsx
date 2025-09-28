@@ -12,8 +12,10 @@ import {
   ChevronRight,
   CreditCard,
   Target,
-  Download
+  Download,
+  Shield
 } from 'lucide-react';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 interface SidebarProps {
   activeView: string;
@@ -24,6 +26,10 @@ interface SidebarProps {
 
 export default function Sidebar({ activeView, onViewChange, isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuthContext();
+
+  // Vérifier si l'utilisateur est admin
+  const isAdmin = user?.email === 'nooolhansaas@gmail.com';
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -35,6 +41,8 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
     { id: 'reports', label: 'Rapports', icon: BarChart3 },
     { id: 'export', label: 'Export', icon: Download },
     { id: 'settings', label: 'Paramètres', icon: Settings },
+    // Afficher l'onglet Admin seulement pour l'admin
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
   ];
 
   const handleViewChange = (view: string) => {
