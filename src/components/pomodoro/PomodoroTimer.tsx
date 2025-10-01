@@ -4,7 +4,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { usePomodoro } from '../../contexts/PomodoroContext';
-import { useSubscription } from '../../hooks/useSubscription';
+;
 
 export const PomodoroTimer: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
@@ -28,12 +28,9 @@ export const PomodoroTimer: React.FC = () => {
     formatTime
   } = usePomodoro();
   
-  // Utiliser directement useSubscription pour éviter les problèmes de synchronisation
-  const { isPremium } = useSubscription();
-
-  // Seuls les utilisateurs Premium peuvent personnaliser les durées
-  const workDuration = (isPremium() ? customWorkDuration : 25) * 60; // minutes to seconds
-  const breakDuration = (isPremium() ? customBreakDuration : 5) * 60; // minutes to seconds
+  // Toutes les fonctionnalités sont maintenant gratuites
+  const workDuration = customWorkDuration * 60; // minutes to seconds
+  const breakDuration = customBreakDuration * 60; // minutes to seconds
 
   const progress = isBreak 
     ? ((breakDuration - timeLeft) / breakDuration) * 100
@@ -95,8 +92,8 @@ export const PomodoroTimer: React.FC = () => {
           </div>
         </div>
 
-        {/* Premium Settings */}
-        {isPremium() && (
+        {/* Settings */}
+        {(
           <div className="mb-6">
             <Button
               onClick={() => setShowSettings(!showSettings)}
@@ -170,13 +167,13 @@ export const PomodoroTimer: React.FC = () => {
           </div>
         )}
 
-        {/* Freemium Info */}
-        {!isPremium() && (
+        {/* Info */}
+        {(
           <div className="mb-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-center space-x-2">
               <Settings className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Durées par défaut : 25 min focus / 5 min pause
+                Personnalisez vos durées de travail et de pause
               </p>
             </div>
           </div>

@@ -24,6 +24,17 @@ interface PieChartProps {
 }
 
 export const PieChart: React.FC<PieChartProps> = ({ data, title, height = 400 }) => {
+  // Vérifier que les données sont valides
+  if (!data || !data.labels || !data.datasets || data.datasets.length === 0) {
+    return (
+      <div style={{ height: `${height}px`, width: '100%' }} className="flex items-center justify-center">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <p>Aucune donnée disponible</p>
+        </div>
+      </div>
+    )
+  }
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -74,6 +85,7 @@ export const PieChart: React.FC<PieChartProps> = ({ data, title, height = 400 })
     </div>
   )
 }
+
 
 
 

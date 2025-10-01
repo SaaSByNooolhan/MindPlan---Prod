@@ -26,8 +26,7 @@ html {
 
 /* Better focus styles for accessibility */
 *:focus {
-  outline: 2px solid #8b5cf6;
-  outline-offset: 2px;
+  outline: none;
 }
 
 /* Custom scrollbar */
@@ -77,6 +76,22 @@ html {
   .mobile-full-width {
     width: 100%;
   }
+  
+  /* Better touch targets */
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Smooth scrolling on mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Prevent zoom on input focus */
+  input, select, textarea {
+    font-size: 16px;
+  }
 }
 
 /* Tablet optimizations */
@@ -122,4 +137,61 @@ html {
 
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Smooth hover effects */
+.hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile-friendly animations */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Better button interactions */
+.btn-interactive {
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-interactive:active {
+  transform: scale(0.98);
+}
+
+.btn-interactive::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.btn-interactive:active::before {
+  width: 300px;
+  height: 300px;
 }

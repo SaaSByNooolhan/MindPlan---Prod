@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../ui/Card'
-import { PremiumGuard } from '../ui/PremiumGuard'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { 
@@ -282,10 +281,6 @@ export const Budgets: React.FC = () => {
           </Button>
         </div>
 
-        <PremiumGuard
-          featureName="Gestion des Budgets"
-          description="Créez et gérez vos budgets par catégorie avec suivi en temps réel et alertes intelligentes."
-        >
           {/* Vue d'ensemble des budgets */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card className="p-6">
@@ -601,7 +596,6 @@ export const Budgets: React.FC = () => {
               </Button>
             </Card>
           )}
-        </PremiumGuard>
       </div>
     </div>
   )

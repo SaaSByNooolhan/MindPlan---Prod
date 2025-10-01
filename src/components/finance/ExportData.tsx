@@ -15,8 +15,6 @@ import { useAuthContext } from '../../contexts/AuthContext'
 import { supabase, Transaction } from '../../lib/supabase'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { useSubscription } from '../../hooks/useSubscription'
-import { PremiumGuard } from '../ui/PremiumGuard'
 
 interface ExportOptions {
   format: 'pdf' | 'excel'
@@ -31,7 +29,6 @@ interface ExportOptions {
 
 export const ExportData: React.FC = () => {
   const { user } = useAuthContext()
-  const { isPremium } = useSubscription()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -391,11 +388,7 @@ export const ExportData: React.FC = () => {
   }
 
   const handleExport = () => {
-    // Pour les utilisateurs freemium, seuls les exports CSV sont autorisés
-    if (!isPremium() && options.format === 'pdf') {
-      alert('L\'export PDF est disponible uniquement pour les utilisateurs Premium. Utilisez l\'export CSV (Excel) qui est gratuit.')
-      return
-    }
+    // Toutes les fonctionnalités d'export sont maintenant gratuites
     
     if (options.format === 'pdf') {
       generatePDF()
@@ -444,19 +437,16 @@ export const ExportData: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setOptions({ ...options, format: 'pdf' })}
-                    disabled={!isPremium()}
                     className={`p-4 border-2 rounded-lg text-center transition-colors ${
-                      !isPremium() 
-                        ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed'
-                        : options.format === 'pdf'
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                      options.format === 'pdf'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
                     }`}
                   >
                     <FileText className="w-8 h-8 mx-auto mb-2 text-blue-600" />
                     <div className="font-medium">PDF</div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {!isPremium() ? 'Premium uniquement' : 'Rapport formaté'}
+                      Rapport formaté
                     </div>
                   </button>
                   
@@ -662,13 +652,6 @@ export const ExportData: React.FC = () => {
                   ? 'Le PDF est idéal pour partager un rapport formaté avec votre conseiller financier.'
                   : 'Le format Excel est parfait pour analyser vos données dans des tableurs ou créer des graphiques personnalisés.'}
               </p>
-              {!isPremium() && (
-                <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                    Version Gratuite : Export CSV uniquement. Passez Premium pour l'export PDF.
-                  </p>
-                </div>
-              )}
             </div>
           </Card>
         </div>

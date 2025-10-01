@@ -4,8 +4,6 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Card } from '../ui/Card'
 import { useAuthSimple } from '../../hooks/useAuthSimple'
-import { useSubscription } from '../../hooks/useSubscription'
-import { redirectToCheckout } from '../../lib/stripe'
 
 interface AuthFormSimpleProps {
   onBackToLanding?: () => void
@@ -35,7 +33,6 @@ export const AuthFormSimple: React.FC<AuthFormSimpleProps> = ({ onBackToLanding,
   }, [])
 
   const { signIn, signUp } = useAuthSimple()
-  const { upgradeToPremium } = useSubscription()
 
 
   const handleSubmit = async (e: React.FormEvent) => {

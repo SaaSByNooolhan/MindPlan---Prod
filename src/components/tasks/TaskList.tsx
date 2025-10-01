@@ -5,7 +5,6 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { supabase, Task } from '../../lib/supabase'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { useSubscription } from '../../hooks/useSubscription'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -15,7 +14,6 @@ interface TaskListProps {
 
 export const TaskList: React.FC<TaskListProps> = ({ initialParams }) => {
   const { user } = useAuthContext()
-  const { isPremium } = useSubscription()
   const [tasks, setTasks] = useState<Task[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -60,11 +58,7 @@ export const TaskList: React.FC<TaskListProps> = ({ initialParams }) => {
     e.preventDefault()
     if (!user || !newTask.title.trim()) return
 
-    // Limitation Freemium : 5 tâches maximum
-    if (!isPremium() && tasks.length >= 5) {
-      alert('Limite Freemium atteinte ! Vous ne pouvez créer que 5 tâches maximum. Passez Premium pour des tâches illimitées.')
-      return
-    }
+    // Plus de limitations - toutes les fonctionnalités sont gratuites
 
     setIsCreating(true)
     const { error } = await supabase

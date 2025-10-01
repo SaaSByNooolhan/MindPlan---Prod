@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { useSubscription } from '../../hooks/useSubscription'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { supabase, Transaction } from '../../lib/supabase'
-import { BarChart3, Calendar, TrendingUp, DollarSign, PieChart, BarChart, Crown } from 'lucide-react'
+import { BarChart3, Calendar, TrendingUp, DollarSign, PieChart, BarChart } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 export const Reports: React.FC = () => {
-  const { isPremium, upgradeToPremium } = useSubscription()
   const { user } = useAuthContext()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
@@ -20,11 +18,8 @@ export const Reports: React.FC = () => {
 
   // Charger les transactions
   useEffect(() => {
-    if (user && isPremium()) {
+    if (user) {
       loadTransactions()
-    } else if (user && !isPremium()) {
-      // Si l'utilisateur n'est pas premium, arrêter le chargement
-      setLoading(false)
     }
   }, [user])
 
@@ -458,7 +453,7 @@ export const Reports: React.FC = () => {
               <p className="text-gray-600 dark:text-gray-400">Chargement des données...</p>
             </div>
           </div>
-        ) : isPremium() ? (
+        ) : (
           <div className="space-y-6">
             {/* Sélecteur de période */}
             <Card className="p-6">
@@ -556,9 +551,9 @@ export const Reports: React.FC = () => {
                   </Button>
                 </div>
                 
-                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
+                <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors">
                   <div className="flex items-center mb-3">
-                    <BarChart className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-2" />
+                    <BarChart className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mr-2" />
                     <h3 className="font-medium text-gray-900 dark:text-gray-100">
                       Rapport de Budget
                     </h3>
@@ -570,7 +565,7 @@ export const Reports: React.FC = () => {
                     onClick={generateBudgetReport}
                     size="sm"
                     variant="outline"
-                    className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                    className="w-full border-indigo-300 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
                   >
                     Générer
                   </Button>
@@ -647,12 +642,12 @@ export const Reports: React.FC = () => {
                               </p>
                               <p className="text-xs text-blue-600 dark:text-blue-400">Solde final</p>
                             </div>
-                            <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                              <PieChart className="w-5 h-5 text-purple-600 dark:text-purple-400 mx-auto mb-1" />
-                              <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
+                            <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                              <PieChart className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mx-auto mb-1" />
+                              <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">
                                 {report.stats.savingsRate?.toFixed(1) || 0}%
                               </p>
-                              <p className="text-xs text-purple-600 dark:text-purple-400">Taux d'épargne</p>
+                              <p className="text-xs text-indigo-600 dark:text-indigo-400">Taux d'épargne</p>
                             </div>
                           </div>
                         </div>
@@ -676,9 +671,9 @@ export const Reports: React.FC = () => {
                                   {report.stats.incomeBreakdown.complementaires.toFixed(2)}€
                                 </p>
                               </div>
-                              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                <p className="text-sm font-medium text-purple-800 dark:text-purple-200">Revenus exceptionnels</p>
-                                <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                                <p className="text-sm font-medium text-indigo-800 dark:text-indigo-200">Revenus exceptionnels</p>
+                                <p className="text-lg font-bold text-indigo-700 dark:text-indigo-300">
                                   {report.stats.incomeBreakdown.exceptionnels.toFixed(2)}€
                                 </p>
                               </div>
@@ -875,53 +870,6 @@ export const Reports: React.FC = () => {
                   ))}
                 </div>
               )}
-            </Card>
-          </div>
-        ) : (
-          // Version freemium - rapports limités
-          <div className="space-y-6">
-            <Card className="p-6">
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Rapports Financiers
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                  Créez des rapports personnalisés avec des analyses détaillées, des graphiques avancés et des insights financiers.
-                </p>
-                <div className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">
-                    Fonctionnalité Premium
-                  </h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                    Les rapports détaillés sont disponibles uniquement pour les utilisateurs Premium.
-                  </p>
-                  <ul className="text-sm text-blue-600 dark:text-blue-400 text-left space-y-1 mb-4">
-                    <li>• Rapports mensuels et annuels</li>
-                    <li>• Analyses détaillées par catégorie</li>
-                    <li>• Graphiques avancés et interactifs</li>
-                    <li>• Export PDF professionnel</li>
-                  </ul>
-                  <p className="text-xs text-blue-500 dark:text-blue-400">
-                    Version Gratuite : Utilisez l'export CSV dans la section Export pour vos données
-                  </p>
-                </div>
-                <div className="mt-6">
-                  <Button
-                    onClick={() => upgradeToPremium(false)}
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700"
-                  >
-                    <Crown className="w-5 h-5 mr-2" />
-                    Commencer votre essai gratuit
-                  </Button>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Puis 9.99€/mois. Annulez à tout moment.
-                  </p>
-                </div>
-              </div>
             </Card>
           </div>
         )}

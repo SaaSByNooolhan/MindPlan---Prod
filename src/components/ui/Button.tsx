@@ -13,13 +13,13 @@ export const Button: React.FC<ButtonProps> = ({
   className = '', 
   ...props 
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2'
+  const baseClasses = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none btn-interactive active:scale-95'
   
   const variants = {
-    primary: 'bg-black hover:bg-gray-800 text-white shadow-lg hover:shadow-xl focus:ring-gray-500 dark:bg-white dark:hover:bg-gray-100 dark:text-black',
-    secondary: 'bg-gray-600 hover:bg-gray-700 text-white shadow-lg hover:shadow-xl focus:ring-gray-500 dark:bg-gray-400 dark:hover:bg-gray-300 dark:text-black',
-    outline: 'border-2 border-black text-black hover:bg-gray-50 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-900',
-    ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-gray-500 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
+    primary: 'bg-black hover:bg-gray-800 text-white shadow-lg hover:shadow-xl dark:bg-white dark:hover:bg-gray-100 dark:text-black',
+    secondary: 'bg-gray-600 hover:bg-gray-700 text-white shadow-lg hover:shadow-xl dark:bg-gray-400 dark:hover:bg-gray-300 dark:text-black',
+    outline: 'border-2 border-black text-black hover:bg-gray-50 dark:border-white dark:text-white dark:hover:bg-gray-900',
+    ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800'
   }
   
   const sizes = {

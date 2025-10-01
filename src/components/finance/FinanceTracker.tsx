@@ -7,7 +7,6 @@ import { supabase, Transaction } from '../../lib/supabase'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { useSubscription } from '../../hooks/useSubscription'
 
 interface FinanceTrackerProps {
   initialParams?: any
@@ -15,7 +14,6 @@ interface FinanceTrackerProps {
 
 export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams }) => {
   const { user } = useAuthContext()
-  const { isPremium } = useSubscription()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [showSubscriptions, setShowSubscriptions] = useState(false)
@@ -96,20 +94,7 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
       return
     }
 
-    // Limitation Freemium : 10 transactions par mois maximum
-    if (!isPremium()) {
-      const currentMonth = new Date().getMonth()
-      const currentYear = new Date().getFullYear()
-      const monthlyTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date)
-        return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear
-      })
-      
-      if (monthlyTransactions.length >= 10) {
-        alert('Limite Freemium atteinte ! Vous ne pouvez créer que 10 transactions par mois maximum. Passez Premium pour des transactions illimitées.')
-        return
-      }
-    }
+    // Plus de limitations - toutes les fonctionnalités sont gratuites
     
     if (!newTransaction.category) {
       alert('Veuillez sélectionner une catégorie')
@@ -220,9 +205,6 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
             <p className="text-gray-600 dark:text-gray-400">
               Suivez vos dépenses et revenus
             </p>
-            <span className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full font-medium">
-              Toutes les transactions
-            </span>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -267,44 +249,13 @@ export const FinanceTracker: React.FC<FinanceTrackerProps> = ({ initialParams })
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
             </p>
-            {!isPremium() && (
-              <p className="text-xs text-gray-500 dark:text-gray-500">
-                {(() => {
-                  const currentMonth = new Date().getMonth()
-                  const currentYear = new Date().getFullYear()
-                  const monthlyTransactions = transactions.filter(t => {
-                    const transactionDate = new Date(t.date)
-                    return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear
-                  })
-                  return `${monthlyTransactions.length}/10 ce mois`
-                })()}
-              </p>
-            )}
-            {isPremium() && (
-              <p className="text-xs text-gray-500 dark:text-gray-500">
-                Basé sur toutes vos transactions
-              </p>
-            )}
+            <p className="text-xs text-gray-500 dark:text-gray-500">
+              Basé sur toutes vos transactions
+            </p>
           </div>
         </div>
       </Card>
 
-      {/* Message d'information freemium */}
-      {!isPremium() && (
-        <Card className="bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-900/20 dark:to-emerald-900/20 border border-blue-200 dark:border-blue-800">
-          <div className="text-center p-4">
-            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
-              Version Gratuite - MindPlan
-            </h3>
-            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-              Vous utilisez la version gratuite avec 10 transactions par mois, graphiques simples et export CSV.
-            </p>
-            <div className="text-xs text-blue-600 dark:text-blue-400">
-              Passez Premium pour des transactions illimitées, analytics avancées et exports PDF
-            </div>
-          </div>
-        </Card>
-      )}
 
       {/* Recurring Transactions Section */}
       {showSubscriptions && (

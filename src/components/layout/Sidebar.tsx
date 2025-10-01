@@ -13,7 +13,6 @@ import {
   CreditCard,
   Target,
   Download,
-  Shield
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 
@@ -28,15 +27,11 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user } = useAuthContext();
 
-  // Vérifier si l'utilisateur est admin
-  const isAdmin = user?.email === 'nooolhansaas@gmail.com';
 
   const menuItems = [
     { id: 'dashboard', label: 'Accueil', icon: LayoutDashboard },
     { id: 'finance', label: 'Finances', icon: DollarSign },
     { id: 'settings', label: 'Paramètres', icon: Settings },
-    // Afficher l'onglet Admin seulement pour l'admin
-    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
   ];
 
   const handleViewChange = (view: string) => {
@@ -55,9 +50,9 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg"
+          className="p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95"
         >
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
@@ -65,7 +60,7 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -73,9 +68,9 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
       {/* Sidebar */}
       <div className={`
         fixed md:relative top-0 left-0 h-full z-50
-        transform transition-transform duration-300 ease-in-out
+        transform transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        ${isCollapsed ? 'w-16' : 'w-64'} bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 flex flex-col
+        ${isCollapsed ? 'w-16' : 'w-64'} bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl md:shadow-none
       `}>
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
@@ -109,10 +104,10 @@ export default function Sidebar({ activeView, onViewChange, isCollapsed = false,
                 <li key={item.id}>
                   <button
                     onClick={() => handleViewChange(item.id)}
-                    className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-4'} py-3 rounded-lg text-left transition-colors duration-200 ${
+                    className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-4'} py-3 rounded-xl text-left transition-all duration-200 ${
                       isActive
-                        ? 'bg-black text-white dark:bg-white dark:text-black'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'
+                        ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:transform hover:scale-102'
                     }`}
                     title={isCollapsed ? item.label : undefined}
                   >

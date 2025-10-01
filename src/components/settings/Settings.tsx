@@ -13,7 +13,6 @@ import {
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../hooks/useAuth'
-import { SubscriptionManager } from '../finance/SubscriptionManager'
 
 export const Settings: React.FC = () => {
   const { user } = useAuthContext()
@@ -73,9 +72,33 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        {/* Section principale - Abonnement */}
+        {/* Section principale - Application Gratuite */}
         <div className="mb-8">
-          <SubscriptionManager />
+          <Card className="p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                MindPlan
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Gestion complète de vos finances personnelles
+              </p>
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
+                  Fonctionnalités incluses :
+                </h4>
+                <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                  <li>• Transactions illimitées</li>
+                  <li>• Analytics avancées</li>
+                  <li>• Budgets intelligents</li>
+                  <li>• Export de données</li>
+                  <li>• Toutes les fonctionnalités premium</li>
+                </ul>
+              </div>
+            </div>
+          </Card>
         </div>
 
 

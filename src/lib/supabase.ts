@@ -71,13 +71,9 @@ export interface PomodoroSession {
 export interface Subscription {
   id: string
   user_id: string
-  plan_type: 'free' | 'premium'
-  status: 'active' | 'cancelled' | 'expired' | 'trial' | 'trial_ending' | 'beta'
+  plan_type: 'free'
+  status: 'active'
   start_date: string
-  end_date?: string
-  trial_end?: string
-  beta_end?: string
-  is_beta_tester?: boolean
   created_at: string
   updated_at: string
 }

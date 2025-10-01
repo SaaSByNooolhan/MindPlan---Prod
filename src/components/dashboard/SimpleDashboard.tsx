@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import { supabase, Transaction } from '../../lib/supabase'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { useSubscription } from '../../hooks/useSubscription'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -31,7 +30,6 @@ interface SimpleDashboardProps {
 
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({ onNavigate }) => {
   const { user } = useAuthContext()
-  const { isPremium, getTrialDaysLeft, subscription } = useSubscription()
   const [stats, setStats] = useState<DashboardStats>({
     totalIncome: 0,
     totalExpenses: 0,
@@ -150,15 +148,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({ onNavigate }) 
         </div>
         
         
-        {/* Statut Premium/Beta */}
-        {isPremium() && (
-          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-full">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              {subscription?.status === 'beta' ? 'BETA' : 'PREMIUM'}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Statistiques principales */}

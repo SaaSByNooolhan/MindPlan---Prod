@@ -16,13 +16,12 @@ export const PomodoroIndicator: React.FC<PomodoroIndicatorProps> = ({ onNavigate
     customBreakDuration, 
     formatTime, 
     startTimer, 
-    pauseTimer,
-    isPremium 
+    pauseTimer
   } = usePomodoro()
 
-  // Calculer les durées (Premium ou par défaut)
-  const workDuration = (isPremium() ? customWorkDuration : 25) * 60
-  const breakDuration = (isPremium() ? customBreakDuration : 5) * 60
+  // Calculer les durées (maintenant toutes gratuites)
+  const workDuration = customWorkDuration * 60
+  const breakDuration = customBreakDuration * 60
   
   // Ne pas afficher si le timer n'a jamais été démarré
   if (!hasStarted) return null

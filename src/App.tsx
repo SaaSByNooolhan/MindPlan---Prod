@@ -8,19 +8,15 @@ import Sidebar from './components/layout/Sidebar'
 import { SimpleDashboard } from './components/dashboard/SimpleDashboard'
 import { FinanceHub } from './components/finance/FinanceHub'
 import { Settings } from './components/settings/Settings'
-import { TrialExpiredModal } from './components/ui/TrialExpiredModal'
-import { AdminPanel } from './components/admin/AdminPanel'
-import { useSubscription } from './hooks/useSubscription'
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuthContext()
-  const { isTrialExpired } = useSubscription()
   
   // Initialiser avec la dernière section visitée ou dashboard par défaut
   const getInitialSection = () => {
     if (typeof window !== 'undefined') {
       const lastSection = localStorage.getItem('lastActiveSection')
-      const validSections = ['dashboard', 'finance', 'settings', 'admin']
+      const validSections = ['dashboard', 'finance', 'settings']
       if (lastSection && validSections.includes(lastSection)) {
         return lastSection
       }
@@ -33,7 +29,6 @@ const AppContent: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [sectionParams, setSectionParams] = useState<any>({})
-  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false)
 
   // Sauvegarder la section active dans localStorage à chaque changement
   React.useEffect(() => {
@@ -62,16 +57,7 @@ const AppContent: React.FC = () => {
     }
   }, [user]) // Seulement quand l'utilisateur change
 
-  // Vérifier l'expiration de l'essai
-  React.useEffect(() => {
-    if (user && isTrialExpired()) {
-      // Vérifier si l'utilisateur a déjà choisi de continuer en version gratuite
-      const hasChosenFree = localStorage.getItem('userChoseFreeVersion')
-      if (!hasChosenFree) {
-        setShowTrialExpiredModal(true)
-      }
-    }
-  }, [user, isTrialExpired])
+  // Plus de vérification d'expiration - l'application est maintenant gratuite
 
   if (loading) {
     return (
@@ -109,8 +95,6 @@ const AppContent: React.FC = () => {
           return <FinanceHub initialSection={sectionParams?.section || 'overview'} />
         case 'settings':
           return <Settings />
-        case 'admin':
-          return <AdminPanel />
         default:
           return <SimpleDashboard onNavigate={handleNavigate} />
       }
@@ -130,7 +114,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-screen">
+    <div className="flex bg-gray-50 dark:bg-gray-900 min-h-screen">
       <Sidebar 
         activeView={activeSection} 
         onViewChange={setActiveSection}
@@ -138,14 +122,10 @@ const AppContent: React.FC = () => {
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       <main className="flex-1 overflow-y-auto">
-        {renderContent()}
+        <div className="p-4 md:p-6 lg:p-8 min-h-screen">
+          {renderContent()}
+        </div>
       </main>
-      
-      {/* Modal d'expiration de l'essai */}
-      <TrialExpiredModal 
-        isOpen={showTrialExpiredModal}
-        onClose={() => setShowTrialExpiredModal(false)}
-      />
     </div>
   )
 }

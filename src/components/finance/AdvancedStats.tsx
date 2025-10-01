@@ -5,7 +5,6 @@ import {
 } from 'recharts'
 import { Card } from '../ui/Card'
 import { Transaction } from '../../lib/supabase'
-import { useSubscription } from '../../hooks/useSubscription'
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { DollarSign, Calendar, Filter, Lock } from 'lucide-react'

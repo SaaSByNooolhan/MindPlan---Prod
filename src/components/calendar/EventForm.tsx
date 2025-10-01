@@ -5,7 +5,6 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { supabase, Event } from '../../lib/supabase'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { useSubscription } from '../../hooks/useSubscription'
 import { format } from 'date-fns'
 
 interface EventFormProps {

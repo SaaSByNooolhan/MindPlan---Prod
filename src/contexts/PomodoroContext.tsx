@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { useSubscription } from '../hooks/useSubscription'
 
 interface PomodoroState {
   timeLeft: number
@@ -24,7 +23,6 @@ interface PomodoroContextType extends PomodoroState {
   setCustomWorkDuration: (duration: number) => void
   setCustomBreakDuration: (duration: number) => void
   formatTime: (seconds: number) => string
-  isPremium: () => boolean
 }
 
 const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined)
@@ -35,7 +33,6 @@ interface PomodoroProviderProps {
 
 export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) => {
   const { user } = useAuth()
-  const { isPremium } = useSubscription()
   const [timeLeft, setTimeLeft] = useState(25 * 60) // 25 minutes in seconds
   const [isActive, setIsActive] = useState(false)
   const [isBreak, setIsBreak] = useState(false)
@@ -50,9 +47,9 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  // Seuls les utilisateurs Premium peuvent personnaliser les durées
-  const workDuration = (isPremium() ? customWorkDuration : 25) * 60 // minutes to seconds
-  const breakDuration = (isPremium() ? customBreakDuration : 5) * 60 // minutes to seconds
+  // Toutes les fonctionnalités sont maintenant gratuites
+  const workDuration = customWorkDuration * 60 // minutes to seconds
+  const breakDuration = customBreakDuration * 60 // minutes to seconds
 
   // Réinitialiser l'état quand l'utilisateur change
   useEffect(() => {
@@ -307,8 +304,7 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
     switchMode,
     setCustomWorkDuration,
     setCustomBreakDuration,
-    formatTime,
-    isPremium
+    formatTime
   }
 
   return (

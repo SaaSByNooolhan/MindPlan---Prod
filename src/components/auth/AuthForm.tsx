@@ -4,7 +4,6 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Card } from '../ui/Card'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { useSubscription } from '../../hooks/useSubscription'
 
 interface AuthFormProps {
   onBackToLanding?: () => void
